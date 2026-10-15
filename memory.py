@@ -14,6 +14,7 @@ never changes because of another user's edit. Items built on a changed fact are 
 ("changed") and items built on a wrong fact are flagged ("wrong"), so their owners find out.
 """
 import os
+import re
 import time
 import uuid
 from pathlib import Path
@@ -24,7 +25,8 @@ from redis.exceptions import ResponseError
 
 import queries
 
-INDEXED_LABELS = ("Fact", "Decision", "Agent", "Entity", "Handoff")
+INDEXED_LABELS = ("Fact", "Decision", "Agent", "Entity", "Handoff", "Message", "Procedure")
+MESSAGE_ROLES = ("user", "agent", "tool")
 TRUST_PENALTY = 0.8  # an author's trust counter is multiplied by this when its fact is retracted
 
 
@@ -44,16 +46,20 @@ def _slug(text):
     return text.strip().lower().replace(" ", "-")
 
 
+def _connect():
+    load_dotenv(Path(__file__).resolve().parent / ".env")
+    return FalkorDB(
+        host=os.environ["FALKORDB_HOST"],
+        port=int(os.environ["FALKORDB_PORT"]),
+        username=os.environ["FALKORDB_USERNAME"],
+        password=os.environ["FALKORDB_PASSWORD"],
+    )
+
+
 class Memory:
     def __init__(self, graph="memory", db=None):
         if db is None:
-            load_dotenv(Path(__file__).resolve().parent / ".env")
-            db = FalkorDB(
-                host=os.environ["FALKORDB_HOST"],
-                port=int(os.environ["FALKORDB_PORT"]),
-                username=os.environ["FALKORDB_USERNAME"],
-                password=os.environ["FALKORDB_PASSWORD"],
-            )
+            db = _connect()
         self.db = db
         self.name = graph
         self.g = db.select_graph(graph)
@@ -144,9 +150,11 @@ class Memory:
     # --- write ---
 
     def remember(self, agent, session, text, entity, entity_name=None, entity_type="thing",
-                 confidence=0.5, derived_from=(), valid_from=None):
-        """Write a private fact. Returns its id."""
-        derived_from = list(derived_from)
+                 confidence=0.5, derived_from=(), valid_from=None, from_messages=()):
+        """Write a private fact. Returns its id. `from_messages` records which conversation
+        messages it was taken from (evidence only: a wrong message can't exist, so it is not lineage)."""
+        derived_from = list(dict.fromkeys(derived_from))
+        from_messages = self._require_messages(agent, from_messages)
         self._require_sources(agent, derived_from, shared_only=False)
         fact_id = _new_id("fact")
         now = _now()
@@ -155,15 +163,16 @@ class Memory:
             "entity_name": entity_name or entity, "entity_type": entity_type,
             "id": fact_id, "text": text, "conf": confidence,
             "valid_from": valid_from if valid_from is not None else now, "now": now,
-            "derived_from": derived_from,
+            "derived_from": derived_from, "from_messages": from_messages,
         })
         if res.nodes_created == 0:
-            raise MemoryGraphError(f"agent {agent!r} did not run session {session!r} (or one is unknown)")
+            raise MemoryGraphError(f"agent {agent!r} did not run session {session!r} (or one is unknown), "
+                f"or a source stopped being active while writing")
         return fact_id
 
     def decide(self, agent, session, text, derived_from=()):
         """Record a decision built on shared, active items. Returns its id."""
-        derived_from = list(derived_from)
+        derived_from = list(dict.fromkeys(derived_from))
         self._require_sources(agent, derived_from, shared_only=True)
         decision_id = _new_id("dec")
         res = self.g.query(queries.DECIDE, {
@@ -171,7 +180,8 @@ class Memory:
             "now": _now(), "derived_from": derived_from,
         })
         if res.nodes_created == 0:
-            raise MemoryGraphError(f"agent {agent!r} did not run session {session!r} (or one is unknown)")
+            raise MemoryGraphError(f"agent {agent!r} did not run session {session!r} (or one is unknown), "
+                f"or a source stopped being active while writing")
         return decision_id
 
     def publish(self, agent, fact_id):
@@ -183,6 +193,149 @@ class Memory:
         if blockers:
             raise MemoryGraphError(f"cannot publish {fact_id}: built on private {sorted(blockers)}; publish those first")
         self.g.query(queries.PUBLISH, {"agent": agent, "id": fact_id})
+
+    # --- conversation history (episodic memory) ---
+
+    def _require_messages(self, agent, ids):
+        """Return the distinct message ids, raising unless this agent may read every one."""
+        ids = list(dict.fromkeys(ids))
+        if ids:
+            rows = self.g.query(queries.READABLE_MESSAGES, {"me": agent, "ids": ids}).result_set
+            missing = [i for i in ids if i not in {r[0] for r in rows}]
+            if missing:
+                raise MemoryGraphError(f"messages not found, or not readable by {agent}: {missing}")
+        return ids
+
+    def add_message(self, agent, session, role, text):
+        """Append a message to a session's conversation. Returns its id. Messages are private to
+        the owning user's agents and are never shared or retracted."""
+        if role not in MESSAGE_ROLES:
+            raise MemoryGraphError(f"bad role {role!r}: use one of {MESSAGE_ROLES}")
+        message_id = _new_id("msg")
+        res = self.g.query(queries.ADD_MESSAGE, {
+            "agent": agent, "session": session, "id": message_id, "role": role,
+            "text": text, "now": _now()})
+        if not res.result_set:
+            raise MemoryGraphError(f"agent {agent!r} did not run session {session!r} (or one is unknown)")
+        return message_id
+
+    def history(self, agent, session):
+        """The conversation of a session, in order. Readable by the owning user's agents only."""
+        if not self.g.query(queries.SESSION_ACCESS, {"me": agent, "session": session}).result_set:
+            raise MemoryGraphError(f"session {session!r} not found, or not readable by {agent}")
+        rows = self.g.query(queries.HISTORY, {"session": session}).result_set
+        return [{"id": r[0], "role": r[1], "text": r[2], "seq": r[3], "at": r[4]} for r in rows]
+
+    def evidence(self, agent, item_id):
+        """The conversation messages behind an item or anything it was built on. The text is
+        shown only for messages this agent may read; others appear with text None."""
+        self._require_visible(agent, [item_id])
+        rows = self.g.query(queries.EVIDENCE, {"id": item_id}).result_set
+        readable = {r[0] for r in self.g.query(
+            queries.READABLE_MESSAGES, {"me": agent, "ids": [r[1] for r in rows]}).result_set} if rows else set()
+        return [{"item": r[0], "message": r[1], "role": r[2], "seq": r[4], "session": r[5],
+                 "text": r[3] if r[1] in readable else None} for r in rows]
+
+    # --- procedures (procedural memory) ---
+
+    @staticmethod
+    def _check_steps(name, steps):
+        steps = list(steps)
+        if not steps or not all(isinstance(s, str) and s.strip() for s in steps):
+            raise MemoryGraphError("a procedure needs at least one step, each a non-empty string")
+        if name is not None and not name.strip():
+            raise MemoryGraphError("a procedure needs a name")
+        return steps
+
+    def learn_procedure(self, agent, session, name, steps, entity, entity_name=None,
+                        entity_type="thing", derived_from=()):
+        """Save a private how-to: a name and ordered steps, about an entity (e.g. a task type).
+        May be derived from facts/decisions, so it is flagged when they are retracted or changed.
+        Nothing can be built on a procedure. Returns its id; share it with publish()."""
+        steps = self._check_steps(name, steps)
+        derived_from = list(dict.fromkeys(derived_from))
+        self._require_sources(agent, derived_from, shared_only=False)
+        procedure_id = _new_id("proc")
+        res = self.g.query(queries.LEARN_PROCEDURE, {
+            "agent": agent, "session": session, "entity": entity,
+            "entity_name": entity_name or entity, "entity_type": entity_type,
+            "id": procedure_id, "name": name, "steps": steps, "now": _now(),
+            "derived_from": derived_from})
+        if not res.result_set:
+            raise MemoryGraphError(
+                f"agent {agent!r} did not run session {session!r} (or one is unknown), "
+                f"or a source stopped being active while writing")
+        return procedure_id
+
+    def revise_procedure(self, agent, session, old_id, steps, name=None, derived_from=()):
+        """Replace a procedure with a new version (the old one stays as history). Also the way to
+        redo a flagged procedure. Only the author's owner can do it. The new version keeps the
+        old one's visibility; a shared procedure can only be built on shared sources.
+        Returns the new id."""
+        steps = self._check_steps(name, steps)
+        derived_from = list(dict.fromkeys(derived_from))
+        self._require_visible(agent, [old_id])
+        self._require_may_change(agent, old_id)
+        self._require_sources(agent, derived_from, shared_only=False)
+        new_id = _new_id("proc")
+        res = self.g.query(queries.REVISE_PROCEDURE, {
+            "old_id": old_id, "new_id": new_id, "name": name, "steps": steps, "agent": agent,
+            "session": session, "now": _now(), "derived_from": derived_from})
+        if not res.result_set:
+            raise MemoryGraphError(
+                f"cannot revise {old_id}: not an active/flagged procedure, {agent!r} did not run "
+                f"{session!r}, or a source is not active (a shared procedure needs shared sources)")
+        return new_id
+
+    def retire_procedure(self, agent, procedure_id, reason=""):
+        """The procedure is obsolete or wrong. Only the author's owner. No trust change."""
+        self._require_visible(agent, [procedure_id])
+        self._require_may_change(agent, procedure_id)
+        res = self.g.query(queries.RETIRE_PROCEDURE, {
+            "id": procedure_id, "me": agent, "reason": reason, "now": _now()})
+        if not res.result_set:
+            raise MemoryGraphError(f"cannot retire {procedure_id}: not an active/flagged procedure")
+
+    def recall_procedures(self, agent, entity):
+        """Active procedures about an entity that this agent may see (flagged ones are left out)."""
+        rows = self.g.query(queries.RECALL_PROCEDURES, {"entity": entity, "me": agent}).result_set
+        return [{"id": r[0], "name": r[1], "steps": r[2], "built_on": sorted(r[3])} for r in rows]
+
+    def handoff(self, sender, recipient, item_ids, note=""):
+        """Pass active facts/decisions from one agent to another. Returns the handoff id.
+
+        Every item must be something both agents may see: shared, or private to a user who owns
+        both agents. A handoff never shares anything, so to hand a private item to another user's
+        agent, publish it first. If an item is later retracted, the recipient is among the agents
+        reported by retract(). The recipient reads its handoffs with inbox().
+        """
+        item_ids = list(dict.fromkeys(item_ids))
+        if not item_ids:
+            raise MemoryGraphError("a handoff must carry at least one item")
+        if sender == recipient:
+            raise MemoryGraphError("an agent cannot hand off to itself")
+        self.trust(sender), self.trust(recipient)  # raises if either agent is unknown
+        self._require_sources(sender, item_ids, shared_only=False)
+        for who in (sender, recipient):
+            rows = self.g.query(queries.VISIBLE_ITEMS, {"me": who, "ids": item_ids}).result_set
+            hidden = [i for i in item_ids if i not in {r[0] for r in rows}]
+            if hidden:
+                raise MemoryGraphError(
+                    f"cannot hand off {hidden}: private, and {who} may not see them "
+                    f"(publish them first)")
+        handoff_id = _new_id("handoff")
+        res = self.g.query(queries.HANDOFF, {
+            "sender": sender, "recipient": recipient, "ids": item_ids,
+            "id": handoff_id, "note": note, "now": _now()})
+        if res.nodes_created == 0:
+            raise MemoryGraphError("handoff failed: an item stopped being active or visible while writing")
+        return handoff_id
+
+    def inbox(self, agent):
+        """What was handed to this agent, newest first, with each item's current status."""
+        self.trust(agent)  # raises if unknown
+        rows = self.g.query(queries.INBOX, {"me": agent}).result_set
+        return [{"id": r[0], "sender": r[1], "note": r[2], "at": r[3], "items": r[4]} for r in rows]
 
     def supersede(self, agent, session, old_id, text, confidence=0.5, at=None):
         """The fact was true and then changed: replace it, keeping the old one as history.
@@ -316,3 +469,39 @@ class Memory:
             "wrong": sorted(r[3]),
             "changed": [{"fact": c, "now": now_map.get(c)} for c in sorted(r[4])],
         } for r in rows]
+
+
+class Tenants:
+    """One FalkorDB graph per tenant (organisation). Nothing crosses the graph boundary: ids,
+    agents and facts of one tenant do not exist in another, so isolation needs no filtering.
+
+    tenants.get("acme") -> a Memory on graph "tenant_acme" (created and indexed on first use).
+    """
+    NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
+
+    def __init__(self, db=None, prefix="tenant_"):
+        self.db = db if db is not None else _connect()
+        self.prefix = prefix
+        self._open = {}
+
+    def _graph_name(self, tenant):
+        # strict names, so a tenant name can never address some other graph
+        if not isinstance(tenant, str) or not self.NAME_RE.fullmatch(tenant):
+            raise MemoryGraphError(f"bad tenant name {tenant!r}: use lowercase letters, digits and '-'")
+        return self.prefix + tenant
+
+    def get(self, tenant):
+        name = self._graph_name(tenant)
+        if tenant not in self._open:
+            mem = Memory(name, db=self.db)
+            mem.setup()
+            self._open[tenant] = mem
+        return self._open[tenant]
+
+    def list(self):
+        return sorted(g[len(self.prefix):] for g in self.db.list_graphs() if g.startswith(self.prefix))
+
+    def drop(self, tenant):
+        """Delete one tenant's whole graph. Other tenants are untouched."""
+        self.get(tenant).drop()
+        self._open.pop(tenant, None)
