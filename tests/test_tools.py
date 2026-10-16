@@ -22,21 +22,21 @@ def priya(mem):
 def test_a_fact_travels_through_the_tools(sam, priya):
     fid = sam.call("remember", {"text": "Acme has 500 employees", "entity": "org:acme"})["id"]
     assert priya.call("recall", {"entity": "org:acme"})["facts"] == []          # still private
-    sam.call("publish", {"fact_id": fid})
+    sam.call("publish", {"item_id": fid})
     [fact] = priya.call("recall", {"entity": "org:acme"})["facts"]
     assert fact["id"] == fid and fact["author"] == sam.agent and fact["needs_verification"] is False
 
 
 def test_the_caller_is_fixed_by_the_config_not_the_arguments(sam, priya):
     fid = sam.call("remember", {"text": "x", "entity": "org:acme"})["id"]
-    sam.call("publish", {"fact_id": fid})
+    sam.call("publish", {"item_id": fid})
     out = priya.call("retract", {"fact_id": fid, "agent": sam.agent})   # an "agent" argument is not accepted
     assert "error" in out
 
 
 def test_lineage_through_the_tools(sam):
     f1 = sam.call("remember", {"text": "Acme has 500 employees", "entity": "org:acme"})["id"]
-    sam.call("publish", {"fact_id": f1})
+    sam.call("publish", {"item_id": f1})
     d1 = sam.call("decide", {"text": "Target Acme", "derived_from": [f1]})["id"]
     assert [a["id"] for a in sam.call("blast_radius", {"item_id": f1})["affected"]] == [d1]
     sam.call("retract", {"fact_id": f1, "reason": "wrong"})
@@ -47,7 +47,7 @@ def test_lineage_through_the_tools(sam):
 
 def test_errors_come_back_as_data(sam, priya):
     fid = sam.call("remember", {"text": "x", "entity": "org:acme"})["id"]
-    sam.call("publish", {"fact_id": fid})
+    sam.call("publish", {"item_id": fid})
     assert "only the author" in priya.call("retract", {"fact_id": fid})["error"]
     assert "unknown tool" in sam.call("drop")["error"]
     assert "bad arguments" in sam.call("remember", {"text": "x"})["error"]            # entity missing
@@ -121,7 +121,7 @@ def test_mcp_errors_carry_the_reason(sam):
 
 def test_correct_and_supersede_return_the_new_id_and_what_was_flagged(sam):
     f1 = sam.call("remember", {"text": "Acme has 500 employees", "entity": "org:acme"})["id"]
-    sam.call("publish", {"fact_id": f1})
+    sam.call("publish", {"item_id": f1})
     d1 = sam.call("decide", {"text": "Target Acme", "derived_from": [f1]})["id"]
     fixed = sam.call("correct", {"old_id": f1, "text": "Acme has 50 employees", "reason": "HR page"})
     assert fixed["retracted"] == f1 and fixed["new"].startswith("fact:") and d1 in fixed["flagged"]

@@ -7,7 +7,7 @@ An agent without an owner owns itself.
 Visibility: a fact is `private` (only its owner's agents see it) until it is published.
 An agent may only build on (derive from) active things it can see, and may only publish a fact
 once everything it was built on is shared, so shared lineage never points at hidden items.
-Decisions are team-visible, so they may only be built on shared items.
+A decision is as visible as its sources: private if any source is private, else shared.
 
 Changes: only the author's owner can supersede, correct or retract a fact, so one user's memory
 never changes because of another user's edit. Items built on a changed fact are flagged
@@ -27,9 +27,15 @@ import queries
 
 INDEXED_LABELS = ("Fact", "Decision", "Agent", "Entity", "Handoff", "Message", "Procedure")
 MESSAGE_ROLES = ("user", "agent", "tool")
-TRUST_PENALTY = 0.9  # an author's trust counter is multiplied by this when its fact is retracted
-TRUST_VERIFY = 0.75  # author trust below this and no supported check -> needs_verification
-TRUST_BOOST = 1.05   # the author's trust is multiplied by this (cap 1.0) on a fact's first supported check
+# Trust is judged per fact first: a fact with a supported evidence check is trusted whoever wrote
+# it. Only a fact with no evidence falls back on its author's accuracy, which is a rate, not a
+# counter: (claims - mistakes + PRIOR_CORRECT) / (claims + PRIOR_CORRECT). A new agent counts as
+# if it had PRIOR_CORRECT correct claims (so it starts at 1.0), and 3 mistakes in 100 claims
+# barely move it (0.97) while 3 in 3 do (0.57).
+PRIOR_CORRECT = 4
+ACCURACY_WARN = 0.75  # an unchecked fact by an author below this accuracy needs verification
+FACT_SOURCES = ("user", "web", "document", "agent")  # "user" facts never count for or against an agent
+STANDING_ORDER = {"verified": 0, "user": 1, "unverified": 2, "doubtful": 3}
 VERIFY_METHODS = ("web", "doc")  # evidence must come from outside the agents: a web search or a document
 VERIFY_RESULTS = ("supported", "contradicted", "unclear")
 
@@ -71,10 +77,12 @@ class Memory:
     # --- admin ---
 
     def setup(self):
-        """Create the id indexes. Safe to call repeatedly."""
-        for label in INDEXED_LABELS:
+        """Create the id indexes and the full-text index on message text. Safe to call repeatedly."""
+        statements = [f"CREATE INDEX FOR (n:{label}) ON (n.id)" for label in INDEXED_LABELS]
+        statements.append(queries.CREATE_MESSAGE_TEXT_INDEX)
+        for statement in statements:
             try:
-                self.g.query(f"CREATE INDEX FOR (n:{label}) ON (n.id)")
+                self.g.query(statement)
             except ResponseError as e:
                 if "already indexed" not in str(e).lower():
                     raise
@@ -95,12 +103,14 @@ class Memory:
             agent_id = f"agent:{_slug(name)}"
             owner_id = agent_id  # an agent without a user owns itself
         self.g.query(
-            "MERGE (a:Agent {id:$id}) ON CREATE SET a.name = $name, a.trust = 1.0, a.owner = $owner",
+            "MERGE (a:Agent {id:$id}) ON CREATE SET a.name = $name, a.owner = $owner",
             {"id": agent_id, "name": name, "owner": owner_id},
         )
         return agent_id
 
-    def start_session(self, agent):
+    def start_session(self, agent, team=()):
+        """Start a session (one chat). `team`: other agents of the same owner that share it, so
+        a user's agents all read and write one conversation. Returns the session id."""
         session_id = _new_id("sess")
         res = self.g.query(
             "MATCH (a:Agent {id:$agent}) CREATE (a)-[:RAN]->(:Session {id:$s, started_at:$now})",
@@ -108,13 +118,32 @@ class Memory:
         )
         if res.nodes_created == 0:
             raise MemoryGraphError(f"unknown agent {agent!r}")
+        for other in team:
+            self.join_session(other, session_id)
         return session_id
 
-    def trust(self, agent):
-        rows = self.g.query("MATCH (a:Agent {id:$id}) RETURN a.trust", {"id": agent}).result_set
-        if not rows:
+    def join_session(self, agent, session):
+        """Let another agent of the same owner into a session. Agents of other users can't join."""
+        if not self.g.query(queries.JOIN_SESSION, {"agent": agent, "session": session}).result_set:
+            raise MemoryGraphError(f"{agent} can't join {session}: unknown, or it belongs to another user")
+
+    def records(self, agents):
+        """{agent id: {"claims", "mistakes", "accuracy"}} for these agents (unknown ids left out)."""
+        rows = self.g.query(queries.AGENT_RECORDS, {"ids": list(dict.fromkeys(agents))}).result_set
+        # FalkorDB's sum() returns a float, so both counts are made whole numbers here
+        counts = {r[0]: (int(r[1]), int(r[2])) for r in rows}
+        return {a: {"claims": c, "mistakes": m, "accuracy": (c - m + PRIOR_CORRECT) / (c + PRIOR_CORRECT)}
+                for a, (c, m) in counts.items()}
+
+    def accuracy(self, agent):
+        """The agent's accuracy (1.0 for a new agent). Raises for an unknown agent."""
+        return self._require_agent(agent)["accuracy"]
+
+    def _require_agent(self, agent):
+        record = self.records([agent]).get(agent)
+        if record is None:
             raise MemoryGraphError(f"unknown agent {agent!r}")
-        return rows[0][0]
+        return record
 
     # --- visibility and source checks ---
 
@@ -129,19 +158,16 @@ class Memory:
         if missing:
             raise MemoryGraphError(f"not found, or not visible to {agent}: {missing}")
 
-    def _require_sources(self, agent, ids, shared_only):
+    def _require_sources(self, agent, ids):
         """Raise unless every id is an active fact/decision this agent may build on."""
         ids = list(dict.fromkeys(ids))
         if not ids:
             return
-        rows = self.g.query(
-            queries.USABLE_SOURCES, {"me": agent, "ids": ids, "shared_only": shared_only}).result_set
+        rows = self.g.query(queries.USABLE_SOURCES, {"me": agent, "ids": ids}).result_set
         found = {r[0] for r in rows}
         missing = [i for i in ids if i not in found]
         if missing:
             why = "unknown, not visible to the agent, or no longer active (retracted, flagged, superseded)"
-            if shared_only:
-                why += "; decisions may only be built on shared items"
             raise MemoryGraphError(f"cannot build on {missing}: {why}")
 
     def _require_may_change(self, agent, item_id):
@@ -154,12 +180,16 @@ class Memory:
     # --- write ---
 
     def remember(self, agent, session, text, entity, entity_name=None, entity_type="thing",
-                 confidence=0.5, derived_from=(), valid_from=None, from_messages=()):
+                 confidence=0.5, derived_from=(), valid_from=None, from_messages=(), source="agent"):
         """Write a private fact. Returns its id. `from_messages` records which conversation
-        messages it was taken from (evidence only: a wrong message can't exist, so it is not lineage)."""
+        messages it was taken from (evidence only: a wrong message can't exist, so it is not lineage).
+        `source`: user (the user said it), web, document, or agent (the agent's own claim). Only
+        non-user facts count toward the agent's accuracy."""
+        if source not in FACT_SOURCES:
+            raise MemoryGraphError(f"source must be one of {FACT_SOURCES}, not {source!r}")
         derived_from = list(dict.fromkeys(derived_from))
         from_messages = self._require_messages(agent, from_messages)
-        self._require_sources(agent, derived_from, shared_only=False)
+        self._require_sources(agent, derived_from)
         fact_id = _new_id("fact")
         now = _now()
         res = self.g.query(queries.REMEMBER, {
@@ -167,7 +197,7 @@ class Memory:
             "entity_name": entity_name or entity, "entity_type": entity_type,
             "id": fact_id, "text": text, "conf": confidence,
             "valid_from": valid_from if valid_from is not None else now, "now": now,
-            "derived_from": derived_from, "from_messages": from_messages,
+            "derived_from": derived_from, "from_messages": from_messages, "source": source,
         })
         if res.nodes_created == 0:
             raise MemoryGraphError(f"agent {agent!r} did not run session {session!r} (or one is unknown), "
@@ -175,9 +205,10 @@ class Memory:
         return fact_id
 
     def decide(self, agent, session, text, derived_from=()):
-        """Record a decision built on shared, active items. Returns its id."""
+        """Record a decision built on active items this agent may see. Returns its id. The decision
+        is private (only its owner's agents see it) if any source is private, else shared."""
         derived_from = list(dict.fromkeys(derived_from))
-        self._require_sources(agent, derived_from, shared_only=True)
+        self._require_sources(agent, derived_from)
         decision_id = _new_id("dec")
         res = self.g.query(queries.DECIDE, {
             "agent": agent, "session": session, "id": decision_id, "text": text,
@@ -189,10 +220,11 @@ class Memory:
         return decision_id
 
     def publish(self, agent, fact_id):
-        """Share a private fact with everyone. Only its owner's agents, and only once its sources are shared."""
+        """Share a private fact, decision or procedure with everyone. Only its owner's agents, and
+        only once its sources are shared."""
         rows = self.g.query(queries.PUBLISH_CHECK, {"agent": agent, "id": fact_id}).result_set
         if not rows:
-            raise MemoryGraphError(f"{agent} has no active fact {fact_id} of its own to publish")
+            raise MemoryGraphError(f"{agent} has no active item {fact_id} of its own to publish")
         blockers = rows[0][1]
         if blockers:
             raise MemoryGraphError(f"cannot publish {fact_id}: built on private {sorted(blockers)}; publish those first")
@@ -228,7 +260,72 @@ class Memory:
         if not self.g.query(queries.SESSION_ACCESS, {"me": agent, "session": session}).result_set:
             raise MemoryGraphError(f"session {session!r} not found, or not readable by {agent}")
         rows = self.g.query(queries.HISTORY, {"session": session}).result_set
-        return [{"id": r[0], "role": r[1], "text": r[2], "seq": r[3], "at": r[4]} for r in rows]
+        return [{"id": r[0], "role": r[1], "text": r[2], "seq": r[3], "at": r[4], "agent": r[5]}
+                for r in rows]
+
+    def search_history(self, agent, query, limit=5, exclude_session=None):
+        """Search the text of every chat this agent's user had (never another user's), best match
+        first. Any of the words may match, and messages with all of them rank first; word forms
+        match ("salaries" finds "salary"); "sal*" is a prefix. Words, not meaning: "earn" won't
+        find "salary", so pass similar words too. Other characters are dropped, so a query can't
+        break the search syntax."""
+        terms = re.findall(r"\w+\*?", query or "")
+        if not terms:
+            raise MemoryGraphError("search_history needs at least one word")
+        # "(a b)|a|b": a plain OR scores a message with one word the same as one with all of them,
+        # so the all-words group is added to lift full matches to the top
+        words = "|".join(terms) if len(terms) == 1 else f"({' '.join(terms)})|" + "|".join(terms)
+        try:
+            rows = self.g.query(queries.SEARCH_HISTORY, {
+                "me": agent, "q": words, "limit": int(limit), "exclude": exclude_session}).result_set
+        except ResponseError as e:
+            raise MemoryGraphError(f"could not search for {words!r}: {e}") from e
+        return [{"id": r[0], "role": r[1], "agent": r[2], "text": r[3], "at": r[4], "session": r[5],
+                 "score": r[6]} for r in rows]
+
+    # --- read views for the UI ---
+
+    def agents(self):
+        """Every agent in this org, with its owner and record (claims, mistakes, accuracy)."""
+        rows = self.g.query(queries.LIST_AGENTS).result_set
+        records = self.records([r[0] for r in rows]) if rows else {}
+        return [{"id": r[0], "name": r[1], "owner": r[2], **records[r[0]]} for r in rows]
+
+    def chats(self, agent, title_chars=60):
+        """This agent's user's chats, most recent first. The title is the first user message."""
+        rows = self.g.query(queries.LIST_CHATS, {"me": agent}).result_set
+        short = lambda t: t if t is None or len(t) <= title_chars else t[:title_chars - 1].rstrip() + "…"
+        return [{"id": r[0], "started_at": r[1], "title": short(r[2]), "messages": r[3], "last_at": r[4]}
+                for r in rows]
+
+    def graph(self, agent, limit=500):
+        """What the graph panel draws for this agent: {"nodes", "edges"}. Only items it may see
+        (shared, or its user's own), their entities, authors and verifiers, and the messages
+        they came from if it may read them. Edges join only those nodes, so none leads to a
+        hidden node."""
+        nodes = {}
+        for r in self.g.query(queries.GRAPH_ITEMS, {"me": agent, "limit": int(limit)}).result_set:
+            nodes[r[0]] = {"id": r[0], "label": r[1], "text": r[2], "status": r[3], "visibility": r[4],
+                           "author": r[5], "recorded_at": r[6]}
+        items = list(nodes)
+        neighbours = self.g.query(queries.GRAPH_NEIGHBOURS, {"ids": items}).result_set if items else []
+        messages = [r[0] for r in neighbours if r[1] == "Message"]
+        readable = {r[0] for r in self.g.query(
+            queries.READABLE_MESSAGES, {"me": agent, "ids": messages}).result_set} if messages else set()
+        for node_id, label, text, role in neighbours:
+            if label != "Message" or node_id in readable:
+                nodes.setdefault(node_id, {"id": node_id, "label": label, "text": text, "role": role})
+        agent_info = {a["id"]: a for a in self.agents()}
+        for node in list(nodes.values()):
+            for a in {node.get("author"), node["id"] if node["label"] == "Agent" else None} - {None}:
+                info = agent_info.get(a, {})
+                nodes[a] = {"id": a, "label": "Agent", "text": info.get("name"),
+                            "owner": info.get("owner"), "accuracy": info.get("accuracy"),
+                            "claims": info.get("claims"), "mistakes": info.get("mistakes")}
+        ids = list(nodes)
+        edges = [{"source": r[0], "type": r[1], "target": r[2], **({"result": r[3]} if r[3] else {})}
+                 for r in self.g.query(queries.GRAPH_EDGES, {"ids": ids}).result_set] if ids else []
+        return {"nodes": list(nodes.values()), "edges": edges}
 
     def evidence(self, agent, item_id):
         """The conversation messages behind an item or anything it was built on. The text is
@@ -258,7 +355,7 @@ class Memory:
         Nothing can be built on a procedure. Returns its id; share it with publish()."""
         steps = self._check_steps(name, steps)
         derived_from = list(dict.fromkeys(derived_from))
-        self._require_sources(agent, derived_from, shared_only=False)
+        self._require_sources(agent, derived_from)
         procedure_id = _new_id("proc")
         res = self.g.query(queries.LEARN_PROCEDURE, {
             "agent": agent, "session": session, "entity": entity,
@@ -280,7 +377,7 @@ class Memory:
         derived_from = list(dict.fromkeys(derived_from))
         self._require_visible(agent, [old_id])
         self._require_may_change(agent, old_id)
-        self._require_sources(agent, derived_from, shared_only=False)
+        self._require_sources(agent, derived_from)
         new_id = _new_id("proc")
         res = self.g.query(queries.REVISE_PROCEDURE, {
             "old_id": old_id, "new_id": new_id, "name": name, "steps": steps, "agent": agent,
@@ -292,7 +389,7 @@ class Memory:
         return new_id
 
     def retire_procedure(self, agent, procedure_id, reason=""):
-        """The procedure is obsolete or wrong. Only the author's owner. No trust change."""
+        """The procedure is obsolete or wrong. Only the author's owner. Not counted as a mistake."""
         self._require_visible(agent, [procedure_id])
         self._require_may_change(agent, procedure_id)
         res = self.g.query(queries.RETIRE_PROCEDURE, {
@@ -318,8 +415,8 @@ class Memory:
             raise MemoryGraphError("a handoff must carry at least one item")
         if sender == recipient:
             raise MemoryGraphError("an agent cannot hand off to itself")
-        self.trust(sender), self.trust(recipient)  # raises if either agent is unknown
-        self._require_sources(sender, item_ids, shared_only=False)
+        self._require_agent(sender), self._require_agent(recipient)  # raises if either is unknown
+        self._require_sources(sender, item_ids)
         for who in (sender, recipient):
             rows = self.g.query(queries.VISIBLE_ITEMS, {"me": who, "ids": item_ids}).result_set
             hidden = [i for i in item_ids if i not in {r[0] for r in rows}]
@@ -337,7 +434,7 @@ class Memory:
 
     def inbox(self, agent):
         """What was handed to this agent, newest first, with each item's current status."""
-        self.trust(agent)  # raises if unknown
+        self._require_agent(agent)  # raises if unknown
         rows = self.g.query(queries.INBOX, {"me": agent}).result_set
         return [{"id": r[0], "sender": r[1], "note": r[2], "at": r[3], "items": r[4]} for r in rows]
 
@@ -345,7 +442,7 @@ class Memory:
         """The fact was true and then changed: replace it, keeping the old one as history.
 
         Only the author's owner can do this. Items built on the old fact are flagged "changed" so
-        their owners can review (confirm) or redo them; the author's trust is untouched, since
+        their owners can review (confirm) or redo them; the author's accuracy is untouched, since
         nothing was wrong. Returns {"superseded", "new", "flagged", "hidden_flagged", "agents"}.
         """
         self._require_visible(agent, [old_id])
@@ -366,15 +463,15 @@ class Memory:
     def retract(self, agent, fact_id, reason=""):
         """Mark one of your facts wrong and flag everything built on it ("wrong").
 
-        Only the author's owner can retract. The author's trust counter is lowered (a reliability
-        record, not a punishment). Returns {"retracted", "flagged", "hidden_flagged", "agents"}:
+        Only the author's owner can retract. It counts as a mistake in the author's accuracy (a
+        reliability record, not a punishment), unless the user was the fact's source. Returns {"retracted", "flagged", "hidden_flagged", "agents"}:
         `flagged` lists the flagged items this agent may see, `hidden_flagged` counts private items
         of other users (their owners still see them in flagged()), `agents` are the ones to notify.
         """
         self._require_visible(agent, [fact_id])
         self._require_may_change(agent, fact_id)
         res = self.g.query(queries.RETRACT, {
-            "id": fact_id, "by": agent, "reason": reason, "factor": TRUST_PENALTY, "now": _now()})
+            "id": fact_id, "by": agent, "reason": reason, "now": _now()})
         if not res.result_set:
             raise MemoryGraphError(f"cannot retract {fact_id}: not a fact, or already retracted/superseded")
         return self._report(agent, fact_id, res.result_set[0][1], "retracted")
@@ -383,8 +480,8 @@ class Memory:
         """One of your facts was wrong: retract it and write the right one, in a single step.
 
         Same effects as retract() (only the author's owner can do it; flags everything built on
-        the old fact as "wrong"; lowers the author's trust counter), plus a new fact that keeps
-        the old one's visibility and entity links and is valid from the same time (the mistake
+        the old fact as "wrong"; a mistake for the author unless the user was the source), plus a
+        new fact that keeps the old one's visibility, source and entity links and is valid from the same time (the mistake
         was in the record, not in the world). Returns retract()'s report plus {"new": id}.
         Use supersede() instead when the fact was true and then changed.
         """
@@ -394,7 +491,7 @@ class Memory:
         res = self.g.query(queries.CORRECT, {
             "old_id": old_id, "new_id": new_id, "text": text, "conf": confidence,
             "agent": agent, "session": session, "reason": reason,
-            "factor": TRUST_PENALTY, "now": _now()})
+            "now": _now()})
         if not res.result_set:
             raise MemoryGraphError(
                 f"cannot correct {old_id}: not a fact, already retracted/superseded, "
@@ -436,29 +533,47 @@ class Memory:
     def recall(self, agent, entity, as_of=None):
         """Active facts about an entity this agent may see, each with the ids it was built on.
 
-        Each fact carries its author's trust and is listed most trusted first (low trust is never
-        hidden). needs_verification is true when that trust is below TRUST_VERIFY and no agent has
-        verified the fact. Retracted and flagged facts are left out. as_of=None gives what is current now; a
-        timestamp (ms) gives what was true then.
+        Each fact has a `standing`, judged on the fact first:
+          verified    a check (web or document) supported it, whoever wrote it
+          user        the user said it: their word, not an agent's claim
+          unverified  no evidence yet, and its author's accuracy is fine
+          doubtful    a check contradicted it, or no evidence and its author's accuracy is low
+        needs_verification is true for doubtful facts. Nothing is hidden: facts come sorted by
+        standing, then by the author's accuracy. Retracted and flagged facts are left out.
+        as_of=None gives what is current now; a timestamp (ms) gives what was true then.
         """
         if as_of is None:
             res = self.g.query(queries.RECALL, {"entity": entity, "me": agent})
         else:
             res = self.g.query(queries.RECALL_AS_OF, {"entity": entity, "me": agent, "t": as_of})
-        return [{"id": r[0], "text": r[1], "built_on": sorted(r[2]), "author": r[3],
-                 "trust": r[4], "verified": r[5],
-                 "needs_verification": r[4] < TRUST_VERIFY and not r[5]}
-                for r in res.result_set]
+        rows = res.result_set
+        records = self.records({r[3] for r in rows}) if rows else {}
+        facts = []
+        for fid, text, built_on, author, source, supported, contradicted in rows:
+            accuracy = records[author]["accuracy"]
+            if supported:
+                standing = "verified"
+            elif source == "user" and not contradicted:
+                standing = "user"
+            elif contradicted or accuracy < ACCURACY_WARN:
+                standing = "doubtful"
+            else:
+                standing = "unverified"
+            facts.append({"id": fid, "text": text, "built_on": sorted(built_on), "author": author,
+                          "source": source, "author_accuracy": accuracy, "standing": standing,
+                          "verified": supported, "needs_verification": standing == "doubtful"})
+        return sorted(facts, key=lambda f: (STANDING_ORDER[f["standing"]], -f["author_accuracy"], f["id"]))
 
     def verify(self, agent, fact_id, method, result, sources, snippet=""):
-        """Record the outcome of an evidence check on a fact. Returns {"trust", "trust_raised"}.
+        """Record the outcome of an evidence check on a fact. Returns {"result"}.
 
         This only records. The check itself (a web search or a read of an uploaded document)
         is done by the checker in llm.py, which supplies `result`, `sources` and `snippet`.
         Evidence is required: `sources` (URLs or document names) must not be empty. Any agent
-        that may see the fact can record a check; it does not edit the fact. Only the first
-        'supported' result raises the author's trust. 'contradicted' and 'unclear' are stored
-        but change nothing: retracting is still the owner's decision.
+        that may see the fact can record a check; it does not edit the fact. Evidence is about the
+        fact: 'supported' makes it verified in recall, 'contradicted' makes it doubtful, and
+        neither changes the author's accuracy (only a retraction does). Retracting is still the
+        owner's decision.
         """
         if method not in VERIFY_METHODS:
             raise MemoryGraphError(f"method must be one of {VERIFY_METHODS}, not {method!r}")
@@ -469,11 +584,11 @@ class Memory:
             raise MemoryGraphError("a check needs evidence: at least one source (URL or document name)")
         rows = self.g.query(queries.VERIFY, {
             "me": agent, "id": fact_id, "method": method, "result": result,
-            "sources": sources, "snippet": snippet, "boost": TRUST_BOOST, "now": _now()}).result_set
+            "sources": sources, "snippet": snippet, "now": _now()}).result_set
         if not rows:
             raise MemoryGraphError(
                 f"cannot verify {fact_id}: not found, not visible to {agent}, or not active")
-        return {"trust": rows[0][0], "trust_raised": bool(rows[0][1])}
+        return {"result": result}
 
     def explain(self, agent, item_id):
         """The chain of facts and agents behind an item, nearest first, with each link's status."""

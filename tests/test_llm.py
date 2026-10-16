@@ -6,7 +6,6 @@ import pytest
 
 from documents import Document, Passage
 from llm import HaikuChecker, LLMBudgetError, MockChecker, Verdict, check_and_record
-from memory import TRUST_BOOST, TRUST_PENALTY
 
 URL = "https://example.com/acme"
 
@@ -138,12 +137,12 @@ def fact_and_checker(team, verdict):
     return mem, r, p, f, MockChecker({"Acme has 500 employees": verdict})
 
 
-def test_check_and_record_stores_a_supported_verdict_and_raises_trust(team):
+def test_check_and_record_stores_a_supported_verdict(team):
     mem, r, p, f, checker = fact_and_checker(team, Verdict("supported", [URL], "Acme has 500 employees"))
-    mem.retract(r, mem.remember(r, team[2], "bad", "org:bad"))      # trust 0.9
+    before = mem.accuracy(r)
     out = check_and_record(mem, p, f, "web", checker)
-    assert out["recorded"] and out["trust_raised"]
-    assert mem.trust(r) == pytest.approx(TRUST_PENALTY * TRUST_BOOST)
+    assert out["recorded"] and out["result"] == "supported"
+    assert mem.accuracy(r) == before                                # evidence is about the fact, not the agent
     assert mem.recall(p, "org:acme")[0]["verified"] is True
     assert checker.calls[0][:2] == ("Acme has 500 employees", "web")
 

@@ -26,7 +26,9 @@ TOOL_NAMES = (
     "remember", "recall", "publish", "supersede", "correct", "retract", "confirm",
     "decide", "explain", "blast_radius", "flagged",
     "handoff", "inbox", "learn_procedure", "recall_procedures", "verify_fact",
+    "save_web_fact", "read_document", "search_history",
 )
+READ_DOC_CHARS = 12_000  # most document text one read_document call returns
 
 Text = Annotated[str, Field(description="plain text")]
 FactId = Annotated[str, Field(description="id of a fact, like fact:3")]
@@ -40,6 +42,9 @@ class AgentTools:
         self.memory, self.agent, self.session = memory, agent, session
         self.checker = checker      # built on first use, so no API key is needed until then
         self.docs_dir = Path(docs_dir).resolve() if docs_dir else None
+        # Set by llm.chat_turn for the length of one user message, never by the model:
+        self.current_message = None  # facts saved now are linked to this message
+        self.web_urls = set()        # URLs the web search returned in this turn
 
     @classmethod
     def open(cls, memory, name, owner=None, checker=None, docs_dir=None):
@@ -52,25 +57,52 @@ class AgentTools:
     def remember(self, text: Text, entity: Entity,
                  entity_name: Annotated[str | None, Field(description="readable name of the entity")] = None,
                  confidence: Annotated[float, Field(ge=0, le=1, description="how sure you are, 0 to 1")] = 0.5,
-                 derived_from: Sources = ()) -> dict:
+                 derived_from: Sources = (),
+                 source: Annotated[str, Field(pattern="^(user|document|agent)$", description=(
+                     "'user' if the user told you, 'document' if you read it in a document, "
+                     "'agent' if you worked it out yourself"))] = "user") -> dict:
         """Write down a fact as a private note. Only you (and your user's other agents) see it
         until you publish it. If it relies on other facts, pass their ids in derived_from so a
-        later correction can find it."""
+        later correction can find it. Say honestly where it came from: if the user later
+        changes something they told you, that is not counted as your mistake."""
         fact = self.memory.remember(self.agent, self.session, text, entity, entity_name=entity_name,
-                                    confidence=confidence, derived_from=list(derived_from))
+                                    confidence=confidence, derived_from=list(derived_from),
+                                    from_messages=[self.current_message] if self.current_message else (),
+                                    source=source)
         return {"id": fact}
+
+    def save_web_fact(self, text: Text, entity: Entity,
+                      sources: Annotated[list[str], Field(
+                          min_length=1, description="URLs from this turn's web search results")],
+                      entity_name: Annotated[str | None, Field(description="readable name of the entity")] = None) -> dict:
+        """Save a fact you just found with web_search. It is shared with the whole team at once and
+        recorded as checked against those web pages. Cite only URLs the search returned; run
+        web_search first."""
+        cited = list(dict.fromkeys(sources))
+        found = [u for u in cited if u in self.web_urls]
+        if not found:
+            raise MemoryGraphError("none of these URLs came back from a web search in this turn; "
+                                   "search first, then cite URLs from the results")
+        fact = self.remember(text, entity, entity_name=entity_name, confidence=0.9, source="web")["id"]
+        # three steps, not one query: if one fails, the fact is still there as a private note
+        self.memory.publish(self.agent, fact)
+        self.memory.verify(self.agent, fact, "web", "supported", found)
+        return {"id": fact, "shared": True, "sources": found,
+                "ignored": [u for u in cited if u not in found]}
 
     def recall(self, entity: Entity,
                as_of: Annotated[int | None, Field(description="epoch ms; omit for what is true now")] = None) -> dict:
-        """What is currently known about an entity. Each fact shows its author and the author's
-        trust, most trusted first. needs_verification means the author has a poor record and
-        no outside evidence yet: check it before relying on it."""
+        """What is currently known about an entity. Each fact has a standing: verified (outside
+        evidence supports it), user (the user said it), unverified (no evidence, reliable author)
+        or doubtful (evidence contradicts it, or its author is often wrong). needs_verification
+        means doubtful: check it before relying on it. Best standing first."""
         return {"facts": self.memory.recall(self.agent, entity, as_of=as_of)}
 
-    def publish(self, fact_id: FactId) -> dict:
-        """Share one of your private facts with the whole team. Its sources must be shared first."""
-        self.memory.publish(self.agent, fact_id)
-        return {"published": fact_id}
+    def publish(self, item_id: ItemId) -> dict:
+        """Share one of your private facts or decisions with every user in the organisation. Its
+        sources must be shared first. Only do this when the user asks you to share something."""
+        self.memory.publish(self.agent, item_id)
+        return {"published": item_id}
 
     def supersede(self, old_id: FactId, text: Text,
                   confidence: Annotated[float, Field(ge=0, le=1)] = 0.5) -> dict:
@@ -89,7 +121,8 @@ class AgentTools:
     def retract(self, fact_id: FactId,
                 reason: Annotated[str, Field(description="why it was wrong")] = "") -> dict:
         """One of your facts was WRONG and has no replacement. Flags everything built on it.
-        This lowers the trust record of the agent that wrote it. Use supersede if it merely changed."""
+        It counts as a mistake for the agent that wrote it, unless the user was the source. Use
+        supersede if it merely changed."""
         return self.memory.retract(self.agent, fact_id, reason=reason)
 
     def confirm(self, item_id: ItemId) -> dict:
@@ -101,8 +134,8 @@ class AgentTools:
     # --- lineage ---
 
     def decide(self, text: Text, derived_from: Sources) -> dict:
-        """Record a decision built on shared facts or decisions, so it can be traced and flagged
-        if one of them turns out wrong."""
+        """Record a decision built on facts or decisions, so it can be traced and flagged if one of
+        them turns out wrong. It stays private to your user if any source is private."""
         return {"id": self.memory.decide(self.agent, self.session, text, derived_from=list(derived_from))}
 
     def explain(self, item_id: ItemId) -> dict:
@@ -128,6 +161,14 @@ class AgentTools:
         private item first if the recipient belongs to another user."""
         return {"handoff": self.memory.handoff(self.agent, recipient, list(item_ids), note=note)}
 
+    def search_history(self, query: Annotated[str, Field(
+                           description="words to look for, including similar words, like: salary income pay earn")]) -> dict:
+        """Search what your user said in earlier chats (this chat is already in front of you).
+        Any of the words may match; messages with all of them come first. Matches words, not
+        meaning, so include similar words. Use it for things that were said but may not have
+        been saved as facts; recall saved facts first."""
+        return {"messages": self.memory.search_history(self.agent, query, exclude_session=self.session)}
+
     def inbox(self) -> dict:
         """What other agents handed to you, newest first, with each item's current status."""
         return {"handoffs": self.memory.inbox(self.agent)}
@@ -151,7 +192,7 @@ class AgentTools:
                     document: Annotated[str | None, Field(
                         description="file name inside the documents folder; needed for method 'doc'")] = None) -> dict:
         """Check a fact against outside evidence, not against another agent's opinion. Only a
-        'supported' result clears a low-trust warning and raises the author's trust. Web checks
+        'supported' result makes the fact verified; 'contradicted' makes it doubtful. Web checks
         cost money and are capped, so use them only when it matters."""
         doc = None
         if method == "doc":
@@ -161,6 +202,20 @@ class AgentTools:
         out = llm.check_and_record(self.memory, self.agent, fact_id, method, self.checker, document=doc)
         out["verdict"] = asdict(out["verdict"])
         return out
+
+    def read_document(self, document: Annotated[str, Field(
+                          description="file name inside the documents folder")],
+                      query: Annotated[str, Field(
+                          description="what you are looking for; picks the passages of a long document")] = "") -> dict:
+        """Read an uploaded document. Each passage says where it came from (page, sheet, row).
+        Facts you take from it are the user's: save them with remember, which keeps them private."""
+        doc = documents.extract(self._document_path(document))
+        passages = documents.select_passages(doc, query, max_chars=READ_DOC_CHARS)
+        if not passages:
+            return {"document": doc.name, "passages": [],
+                    "note": "the document is long and no passage matched the query; try other words"}
+        return {"document": doc.name, "passages": [{"label": p.label, "text": p.text} for p in passages],
+                "complete": len(passages) == len(doc.passages)}
 
     def _document_path(self, name):
         if not self.docs_dir:

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shared Agent Memory</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+</head>
+<body>
+  <!-- entry: who are you, which org -->
+  <div id="entry" class="overlay hidden">
+    <form id="entry-form" class="card">
+      <h1>Shared Agent Memory</h1>
+      <p class="muted">Three agents work for you and share one memory graph on FalkorDB.</p>
+      <label>Your name <input id="entry-name" required maxlength="31" pattern="[A-Za-z][A-Za-z0-9 ]*" autocomplete="off"></label>
+      <label>Organisation <select id="entry-org"></select></label>
+      <button type="submit">Enter</button>
+      <p class="muted small">No login: anyone who types the same name in the same organisation is you. Don't enter real personal data.</p>
+    </form>
+  </div>
+
+  <header>
+    <strong>Shared Agent Memory</strong>
+    <span id="who" class="muted"></span>
+    <span class="spacer"></span>
+    <span id="status" class="pill"></span>
+    <button id="switch" class="link">Switch user</button>
+  </header>
+
+  <main>
+    <!-- left: chats, agents, flagged -->
+    <aside id="left">
+      <button id="new-chat">+ New chat</button>
+      <h3>Chats</h3>
+      <ul id="chats" class="list"></ul>
+      <h3>Your agents</h3>
+      <ul id="my-agents" class="list"></ul>
+      <h3>Others in this org</h3>
+      <ul id="other-agents" class="list muted"></ul>
+      <h3>Flagged <span id="flag-count" class="pill warn hidden"></span></h3>
+      <ul id="flagged" class="list"></ul>
+    </aside>
+
+    <!-- middle: the chat -->
+    <section id="middle">
+      <div id="messages"><p class="muted center">Start a new chat, or open one on the left.</p></div>
+      <form id="send-form">
+        <textarea id="input" rows="2" placeholder="Ask your team anything…" disabled></textarea>
+        <button id="send" type="submit" disabled>Send</button>
+      </form>
+    </section>
+
+    <!-- right: graph + inspector -->
+    <section id="right">
+      <div class="panel-head">
+        <h3>Memory graph <span class="muted small">(what you may see)</span></h3>
+        <button id="refresh-graph" class="link">Refresh</button>
+      </div>
+      <div id="graph"></div>
+      <div id="legend" class="small">
+        <span><i class="dot active"></i>active</span><span><i class="dot flagged"></i>flagged</span>
+        <span><i class="dot retracted"></i>retracted</span><span><i class="dot superseded"></i>superseded</span>
+        <span><i class="dot private"></i>private (dashed)</span>
+      </div>
+      <div id="inspector" class="muted">Click a node to inspect it.</div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

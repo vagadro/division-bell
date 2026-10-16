@@ -51,7 +51,7 @@ def test_retract_in_one_tenant_flags_nothing_in_other(tenants):
     a.retract(ag, fa)
     assert [x["id"] for x in a.flagged(ag)] == [da]
     assert b.flagged(bg) == []
-    assert b.trust(bg) == 1.0 and a.trust(ag) < 1.0
+    assert b.accuracy(bg) == 1.0 and a.accuracy(ag) < 1.0
     assert db_  # still active in globex
 
 

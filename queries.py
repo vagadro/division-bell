@@ -10,7 +10,9 @@ may see a private fact and who may change, retract, publish or confirm a fact.
 """
 
 # remember: an agent writes a fact. Starts private. Optionally derived from other facts/decisions.
-# Params: agent, session, entity, entity_name, entity_type, id, text, conf, valid_from, now,
+# `source` says where it came from: user (the user said it), web, document, or agent (the agent's
+# own claim). Only non-user facts count toward the author's accuracy.
+# Params: agent, session, entity, entity_name, entity_type, id, text, conf, valid_from, now, source,
 #         derived_from (list of distinct ids, may be empty), from_messages (message ids, may be empty;
 #         EXTRACTED_FROM edges, which blast radius never follows)
 # Check and write are ONE query: if any source is not an active fact/decision (e.g. it was
@@ -24,7 +26,7 @@ WITH a, s, collect(DISTINCT src) AS sources
 WHERE size(sources) = size($derived_from)
 MERGE (e:Entity {id:$entity})
   ON CREATE SET e.name = $entity_name, e.type = $entity_type
-CREATE (f:Fact {id:$id, text:$text, visibility:'private', status:'active',
+CREATE (f:Fact {id:$id, text:$text, visibility:'private', status:'active', source:$source,
                 confidence:$conf, valid_from:$valid_from, recorded_at:$now})
 CREATE (a)-[:ASSERTED]->(f), (f)-[:ABOUT]->(e), (f)-[:IN_SESSION]->(s)
 WITH f, sources
@@ -47,7 +49,7 @@ MATCH (old:Fact {id:$old_id}) WHERE old.valid_to IS NULL AND old.status IN ['act
 MATCH (a:Agent {id:$agent})-[:RAN]->(s:Session {id:$session})
 MATCH (author:Agent)-[:ASSERTED]->(old) WHERE author.id = a.id OR author.owner = a.owner
 SET old.valid_to = $at, old.status = 'superseded'
-CREATE (new:Fact {id:$new_id, text:$text, visibility:old.visibility, status:'active',
+CREATE (new:Fact {id:$new_id, text:$text, visibility:old.visibility, status:'active', source:old.source,
                   confidence:$conf, valid_from:$at, recorded_at:$now})
 CREATE (new)-[:SUPERSEDES]->(old), (a)-[:ASSERTED]->(new), (new)-[:IN_SESSION]->(s)
 WITH old, new
@@ -65,7 +67,8 @@ RETURN old.id AS id, new.id AS new_id, [n IN affected | n.id] AS flagged
 # recall: current facts about an entity that this agent may see (shared, or its owner's own
 # private ones), each with the ids of what it was built on, up to 3 hops back.
 # Only status 'active' is returned, so superseded, retracted and flagged facts are left out.
-# Also returns the author and its trust, whether a check found it supported, most trusted first.
+# Also returns the author, the fact's source, and whether checks supported or contradicted it
+# (the caller adds the author's accuracy and the fact's standing, and sorts).
 # Params: entity, me
 RECALL = """
 MATCH (me:Agent {id:$me})
@@ -74,9 +77,10 @@ WHERE f.status = 'active' AND f.valid_to IS NULL
   AND (f.visibility = 'shared' OR author.id = me.id OR author.owner = me.owner)
 OPTIONAL MATCH (f)-[:DERIVED_FROM*1..3]->(src)
 OPTIONAL MATCH (:Agent)-[v:VERIFIED {result:'supported'}]->(f)
-RETURN f.id AS id, f.text AS text, collect(DISTINCT src.id) AS built_on,
-       author.id AS author, author.trust AS trust, count(DISTINCT v) > 0 AS verified
-ORDER BY trust DESC, id
+OPTIONAL MATCH (:Agent)-[x:VERIFIED {result:'contradicted'}]->(f)
+RETURN f.id AS id, f.text AS text, collect(DISTINCT src.id) AS built_on, author.id AS author,
+       coalesce(f.source, 'agent') AS source, count(DISTINCT v) > 0 AS supported,
+       count(DISTINCT x) > 0 AS contradicted
 """
 
 # provenance (explain): the chain behind an item, nearest first, with the agent who asserted
@@ -99,13 +103,14 @@ WHERE f.status IN ['active', 'superseded']
   AND (f.visibility = 'shared' OR author.id = me.id OR author.owner = me.owner)
 OPTIONAL MATCH (f)-[:DERIVED_FROM*1..3]->(src)
 OPTIONAL MATCH (:Agent)-[v:VERIFIED {result:'supported'}]->(f)
-RETURN f.id AS id, f.text AS text, collect(DISTINCT src.id) AS built_on,
-       author.id AS author, author.trust AS trust, count(DISTINCT v) > 0 AS verified
-ORDER BY trust DESC, id
+OPTIONAL MATCH (:Agent)-[x:VERIFIED {result:'contradicted'}]->(f)
+RETURN f.id AS id, f.text AS text, collect(DISTINCT src.id) AS built_on, author.id AS author,
+       coalesce(f.source, 'agent') AS source, count(DISTINCT v) > 0 AS supported,
+       count(DISTINCT x) > 0 AS contradicted
 """
 
 # Which of these ids are facts/decisions/procedures this agent may see (shared, or its owner's own)?
-# Decisions have no visibility property, so they count as visible.
+# An item with no visibility property (a decision from before decisions had one) counts as shared.
 # Params: me, ids
 VISIBLE_ITEMS = """
 MATCH (me:Agent {id:$me})
@@ -117,13 +122,13 @@ WHERE x.visibility IS NULL OR x.visibility = 'shared'
 RETURN DISTINCT x.id
 """
 
-# publish step 1: may this agent publish this active fact (it, or an agent of its owner, wrote it),
+# publish step 1: may this agent publish this active fact/decision/procedure (it, or an agent of its owner, wrote it),
 # and which private ancestors does it have? No row means not found, not allowed, or not active.
 # Params: agent, id
 PUBLISH_CHECK = """
 MATCH (me:Agent {id:$agent})
 MATCH (author:Agent)-[:ASSERTED]->(f {id:$id})
-WHERE labels(f)[0] IN ['Fact', 'Procedure'] AND f.status = 'active' AND (author.id = me.id OR author.owner = me.owner)
+WHERE labels(f)[0] IN ['Fact', 'Decision', 'Procedure'] AND f.status = 'active' AND (author.id = me.id OR author.owner = me.owner)
 OPTIONAL MATCH (f)-[:DERIVED_FROM*1..]->(src) WHERE src.visibility = 'private'
 RETURN f.id, collect(DISTINCT src.id) AS private_ancestors
 """
@@ -132,7 +137,7 @@ RETURN f.id, collect(DISTINCT src.id) AS private_ancestors
 PUBLISH = """
 MATCH (me:Agent {id:$agent})
 MATCH (author:Agent)-[:ASSERTED]->(f {id:$id})
-WHERE labels(f)[0] IN ['Fact', 'Procedure'] AND f.status = 'active' AND (author.id = me.id OR author.owner = me.owner)
+WHERE labels(f)[0] IN ['Fact', 'Decision', 'Procedure'] AND f.status = 'active' AND (author.id = me.id OR author.owner = me.owner)
 SET f.visibility = 'shared'
 RETURN f.id
 """
@@ -140,20 +145,21 @@ RETURN f.id
 # --- lineage ---
 
 # Which of these ids can this agent build on? They must be active facts/decisions it can see.
-# shared_only=true (used by decisions) also rules out private items, even its owner's own.
-# Params: me, ids, shared_only
+# Params: me, ids
 USABLE_SOURCES = """
 MATCH (me:Agent {id:$me})
 MATCH (x) WHERE x.id IN $ids AND labels(x)[0] IN ['Fact', 'Decision'] AND x.status = 'active'
 OPTIONAL MATCH (author:Agent)-[:ASSERTED]->(x)
 WITH me, x, author
 WHERE x.visibility IS NULL OR x.visibility = 'shared'
-   OR (NOT $shared_only AND (author.id = me.id OR author.owner = me.owner))
+   OR author.id = me.id OR author.owner = me.owner
 RETURN DISTINCT x.id
 """
 
-# decide: an agent records a decision built on shared items. Decisions have no visibility
-# property (they are team-visible). Writes nothing if the agent did not run the session.
+# decide: an agent records a decision built on items it may see. The decision is as visible as
+# its sources: private if any source is private (only its owner's agents see it), else shared.
+# Decisions written before this rule have no visibility property and count as shared.
+# Writes nothing if the agent did not run the session.
 # Params: agent, session, id, text, now, derived_from (list of ids, may be empty)
 DECIDE = """
 MATCH (a:Agent {id:$agent})-[:RAN]->(s:Session {id:$session})
@@ -161,7 +167,9 @@ OPTIONAL MATCH (src) WHERE src.id IN $derived_from AND labels(src)[0] IN ['Fact'
                        AND src.status = 'active'
 WITH a, s, collect(DISTINCT src) AS sources
 WHERE size(sources) = size($derived_from)
-CREATE (d:Decision {id:$id, text:$text, status:'active', created_at:$now, recorded_at:$now})
+CREATE (d:Decision {id:$id, text:$text, status:'active', created_at:$now, recorded_at:$now,
+                    visibility: CASE WHEN any(x IN sources WHERE x.visibility = 'private')
+                                     THEN 'private' ELSE 'shared' END})
 CREATE (a)-[:ASSERTED]->(d), (d)-[:IN_SESSION]->(s)
 WITH d, sources
 UNWIND sources AS src
@@ -179,17 +187,17 @@ RETURN x.id AS id, x.text AS text, x.status AS status, a.id AS agent, min(length
 ORDER BY depth, id
 """
 
-# retract: the fact was wrong. One atomic query that (1) marks it retracted, (2) lowers the
-# author's trust counter by $factor, and (3) flags every still-active downstream item as
-# "wrong" (flag_wrong), recording which retraction flagged it. $by must be the author or an
-# agent of the author's owner. Returns no row if the fact is not an active/flagged fact that
-# $by may change. Params: id, by, reason, factor, now
+# retract: the fact was wrong. One atomic query that (1) marks it retracted (which counts as a
+# mistake in its author's accuracy, unless the user was the source) and (2) flags every
+# still-active downstream item as "wrong" (flag_wrong), recording which retraction flagged it.
+# $by must be the author or an agent of the author's owner. Returns no row if the fact is not an
+# active/flagged fact that $by may change. Params: id, by, reason, now
 RETRACT = """
 MATCH (f:Fact {id:$id}) WHERE f.status IN ['active', 'flagged']
 MATCH (me:Agent {id:$by})
 MATCH (asserter:Agent)-[:ASSERTED]->(f) WHERE asserter.id = me.id OR asserter.owner = me.owner
 SET f.status = 'retracted', f.retracted_at = $now, f.retracted_by = $by,
-    f.retract_reason = $reason, asserter.trust = asserter.trust * $factor
+    f.retract_reason = $reason
 WITH f
 OPTIONAL MATCH (f)<-[:DERIVED_FROM*1..]-(x) WHERE x.status IN ['active', 'flagged']
 WITH f, collect(DISTINCT x) AS affected
@@ -200,20 +208,20 @@ RETURN f.id AS id, [n IN affected | n.id] AS flagged
 """
 
 # correct: the old fact was wrong and here is the right one. One atomic query that does what
-# RETRACT does (retract, flag downstream as wrong, trust counter) and also writes the corrected
-# fact. The new fact copies the old one's visibility, ABOUT links and valid_from (it was a
+# RETRACT does (retract, flag downstream as wrong) and also writes the corrected
+# fact. The new fact copies the old one's visibility, source, ABOUT links and valid_from (it was a
 # mistake in the record, so the right value was true all along), and a CORRECTS edge points
 # from it to the old fact. Only the author or an agent of the same owner can do this. Returns
 # no row, and writes nothing, if the old fact is not an active/flagged fact, the agent may not
 # change it, or it did not run the session.
-# Params: old_id, new_id, text, conf, agent, session, reason, factor, now
+# Params: old_id, new_id, text, conf, agent, session, reason, now
 CORRECT = """
 MATCH (f:Fact {id:$old_id}) WHERE f.status IN ['active', 'flagged']
 MATCH (a:Agent {id:$agent})-[:RAN]->(s:Session {id:$session})
 MATCH (asserter:Agent)-[:ASSERTED]->(f) WHERE asserter.id = a.id OR asserter.owner = a.owner
 SET f.status = 'retracted', f.retracted_at = $now, f.retracted_by = $agent,
-    f.retract_reason = $reason, asserter.trust = asserter.trust * $factor
-CREATE (new:Fact {id:$new_id, text:$text, visibility:f.visibility, status:'active',
+    f.retract_reason = $reason
+CREATE (new:Fact {id:$new_id, text:$text, visibility:f.visibility, status:'active', source:f.source,
                   confidence:$conf, valid_from:f.valid_from, recorded_at:$now})
 CREATE (new)-[:CORRECTS]->(f), (a)-[:ASSERTED]->(new), (new)-[:IN_SESSION]->(s)
 WITH f, new
@@ -318,8 +326,19 @@ ADD_MESSAGE = """
 MATCH (:Agent {id:$agent})-[:RAN]->(s:Session {id:$session})
 SET s.msg_count = coalesce(s.msg_count, 0) + 1
 WITH s, s.msg_count AS seq
-CREATE (s)-[:HAS_MESSAGE]->(:Message {id:$id, role:$role, text:$text, seq:seq, at:$now})
+CREATE (s)-[:HAS_MESSAGE]->(:Message {id:$id, role:$role, text:$text, seq:seq, at:$now, agent:$agent})
 RETURN seq
+"""
+
+# join: another agent of the same owner joins a session, so one chat is shared by a user's
+# agents. Returns no row if the session is unknown or none of its agents has the same owner.
+# Params: agent, session
+JOIN_SESSION = """
+MATCH (a:Agent {id:$agent})
+MATCH (b:Agent)-[:RAN]->(s:Session {id:$session}) WHERE b.owner = a.owner
+WITH a, s LIMIT 1
+MERGE (a)-[:RAN]->(s)
+RETURN s.id
 """
 
 # May this agent read this session (it, or an agent of the same owner, ran it)? Params: me, session
@@ -332,8 +351,91 @@ RETURN s.id
 # Messages of a session in order. Params: session
 HISTORY = """
 MATCH (:Session {id:$session})-[:HAS_MESSAGE]->(m:Message)
-RETURN m.id, m.role, m.text, m.seq, m.at
+RETURN m.id, m.role, m.text, m.seq, m.at, m.agent
 ORDER BY m.seq
+"""
+
+# Full-text index on message text (FalkorDB runs it on RediSearch): built as messages are
+# written, so a search is an index lookup, not a scan of every message.
+CREATE_MESSAGE_TEXT_INDEX = "CALL db.idx.fulltext.createNodeIndex('Message', 'text')"
+
+# search past chats: messages matching $q, ranked by the index's relevance score, only from
+# sessions run by this agent's user, optionally leaving out one session (the current chat).
+# The index covers the whole graph (one org), so the owner filter is what keeps users apart.
+# Params: me, q, limit, exclude
+SEARCH_HISTORY = """
+CALL db.idx.fulltext.queryNodes('Message', $q) YIELD node, score
+MATCH (s:Session)-[:HAS_MESSAGE]->(node)
+WHERE ($exclude IS NULL OR s.id <> $exclude) AND node.role IN ['user', 'agent']
+MATCH (me:Agent {id:$me})
+MATCH (a:Agent)-[:RAN]->(s) WHERE a.owner = me.owner
+WITH DISTINCT node, score, s
+RETURN node.id, node.role, node.agent, node.text, node.at, s.id, score
+ORDER BY score DESC, node.at DESC
+LIMIT $limit
+"""
+
+# --- read views for the UI (change nothing) ---
+
+# Every agent in this org's graph. Agents are not private. Params: none
+LIST_AGENTS = """
+MATCH (a:Agent)
+RETURN a.id, a.name, a.owner
+ORDER BY a.owner, a.id
+"""
+
+# An agent's record: its claims (facts it asserted that did not come from the user) and its
+# mistakes (those claims later retracted, by retract or correct). Superseded facts are not
+# mistakes (they were true, then changed), and facts the user told it never count: if the user
+# changes their story, the agent was not wrong. Counted live from the graph, so there is no
+# stored number to drift or race. Params: ids
+AGENT_RECORDS = """
+MATCH (a:Agent) WHERE a.id IN $ids
+OPTIONAL MATCH (a)-[:ASSERTED]->(c:Fact) WHERE coalesce(c.source, 'agent') <> 'user'
+RETURN a.id, count(c) AS claims, sum(CASE WHEN c.status = 'retracted' THEN 1 ELSE 0 END) AS mistakes
+"""
+
+# This agent's user's chats (sessions any of its agents ran), most recent activity first, with
+# the first user message as the title. Params: me
+LIST_CHATS = """
+MATCH (me:Agent {id:$me})
+MATCH (a:Agent)-[:RAN]->(s:Session) WHERE a.owner = me.owner
+WITH DISTINCT s
+OPTIONAL MATCH (s)-[:HAS_MESSAGE]->(m:Message)
+WITH s, m ORDER BY m.seq
+WITH s, collect(m) AS ms
+RETURN s.id, s.started_at, [x IN ms WHERE x.role = 'user' | x.text][0] AS title, size(ms),
+       CASE WHEN size(ms) > 0 THEN ms[size(ms)-1].at ELSE s.started_at END AS last
+ORDER BY last DESC
+"""
+
+# graph view step 1: the facts, decisions and procedures this agent may see (shared, or its
+# user's own), with their author. Same rule as VISIBLE_ITEMS. Params: me, limit
+GRAPH_ITEMS = """
+MATCH (me:Agent {id:$me})
+MATCH (author:Agent)-[:ASSERTED]->(x) WHERE labels(x)[0] IN ['Fact', 'Decision', 'Procedure']
+  AND (x.visibility IS NULL OR x.visibility = 'shared' OR author.id = me.id OR author.owner = me.owner)
+RETURN x.id, labels(x)[0], coalesce(x.text, x.name), x.status, coalesce(x.visibility, 'shared'),
+       author.id, x.recorded_at
+ORDER BY x.recorded_at DESC
+LIMIT $limit
+"""
+
+# graph view step 2: what those items point to: entities, verifying agents, and the messages they
+# were taken from (the caller keeps only messages this agent may read). Params: ids
+GRAPH_NEIGHBOURS = """
+MATCH (x)-[r:ABOUT|EXTRACTED_FROM]->(n) WHERE x.id IN $ids
+RETURN DISTINCT n.id AS id, labels(n)[0] AS label, coalesce(n.name, n.text) AS text, n.role AS role
+UNION
+MATCH (v:Agent)-[:VERIFIED]->(x) WHERE x.id IN $ids
+RETURN DISTINCT v.id AS id, 'Agent' AS label, v.name AS text, null AS role
+"""
+
+# graph view step 3: the edges between nodes already chosen, so no edge leads to a hidden node.
+# Params: ids
+GRAPH_EDGES = """
+MATCH (a)-[r]->(b) WHERE a.id IN $ids AND b.id IN $ids
+RETURN a.id, type(r), b.id, r.result
 """
 
 # Which of these message ids can this agent read? Params: me, ids
@@ -404,7 +506,7 @@ FOREACH (src IN sources | CREATE (new)-[:DERIVED_FROM]->(src))
 RETURN new.id
 """
 
-# retire: the procedure is obsolete or wrong. A leaf, so nothing downstream to flag, and no trust
+# retire: the procedure is obsolete or wrong. A leaf, so nothing downstream to flag, and no accuracy
 # change. Only the author's owner. Params: id, me, reason, now
 RETIRE_PROCEDURE = """
 MATCH (p:Procedure {id:$id}) WHERE p.status IN ['active', 'flagged']
@@ -429,22 +531,15 @@ ORDER BY p.id
 # --- verification ---
 
 # verify: record the outcome of an evidence check (web or doc) on an active fact this agent may
-# see. Writes a VERIFIED edge for every outcome. Only the FIRST 'supported' outcome for a fact
-# raises its author's trust (by $boost, capped at 1.0). One atomic query, so two parallel
-# checks can't both count as the first.
-# Params: me, id, method, result, sources, snippet, boost, now
+# see. Writes a VERIFIED edge for every outcome and changes nothing else: evidence is about the
+# fact, so a supported check makes that fact trusted, but it is not a score for the agent.
+# Params: me, id, method, result, sources, snippet, now
 VERIFY = """
 MATCH (me:Agent {id:$me})
 MATCH (author:Agent)-[:ASSERTED]->(f:Fact {id:$id})
 WHERE f.status = 'active'
   AND (f.visibility = 'shared' OR author.id = me.id OR author.owner = me.owner)
-OPTIONAL MATCH (:Agent)-[prev:VERIFIED {result:'supported'}]->(f)
-WITH me, author, f, count(prev) AS prior,
-     CASE WHEN $result = 'supported' THEN author.trust * $boost ELSE author.trust END AS raised
 CREATE (me)-[:VERIFIED {method:$method, result:$result, sources:$sources,
                         snippet:$snippet, at:$now}]->(f)
-SET author.trust = CASE WHEN $result = 'supported' AND prior = 0
-                        THEN CASE WHEN raised > 1.0 THEN 1.0 ELSE raised END
-                        ELSE author.trust END
-RETURN author.trust AS trust, ($result = 'supported' AND prior = 0) AS raised
+RETURN f.id
 """

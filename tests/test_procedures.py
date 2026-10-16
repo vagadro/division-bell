@@ -131,11 +131,11 @@ def test_only_the_authors_user_can_change_it(w):
     assert status(mem, p2) == "active"
 
 
-def test_retire_ends_it_without_touching_trust(w):
+def test_retire_ends_it_and_is_no_mistake(w):
     mem = w["mem"]
     p = learn(w)
     mem.retire_procedure(w["sr"], p, "obsolete")
-    assert status(mem, p) == "retired" and mem.trust(w["sr"]) == 1.0
+    assert status(mem, p) == "retired" and mem.records([w["sr"]])[w["sr"]]["mistakes"] == 0
     assert mem.recall_procedures(w["sr"], "task:outreach") == []
     with pytest.raises(MemoryGraphError):
         mem.retire_procedure(w["sr"], p)

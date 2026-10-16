@@ -1,7 +1,7 @@
 """Ownership tests: Sam's agents share Sam's memory; Priya's agents can't touch it."""
 import pytest
 
-from memory import MemoryGraphError, TRUST_PENALTY
+from memory import MemoryGraphError
 
 
 @pytest.fixture
@@ -59,14 +59,14 @@ def test_a_users_agent_can_publish_its_siblings_note_others_cannot(world):
     assert ids(mem.recall(w["priya_r"], "org:acme")) == [note]  # now shared with everyone
 
 
-def test_a_users_agent_can_change_its_siblings_fact_and_trust_goes_to_the_author(world):
+def test_a_users_agent_can_change_its_siblings_fact_and_the_mistake_goes_to_the_author(world):
     w = world
     mem = w["mem"]
     f = mem.remember(w["sam_r"], w["s_sr"], "Acme has 500 employees", "org:acme")
     out = mem.correct(w["sam_p"], w["s_sp"], f, "Acme has 50 employees")  # the Planner corrects it
     assert status(mem, f) == "retracted" and status(mem, out["new"]) == "active"
-    assert mem.trust(w["sam_r"]) == pytest.approx(TRUST_PENALTY)  # the agent that wrote the bad fact
-    assert mem.trust(w["sam_p"]) == 1.0
+    assert mem.records([w["sam_r"]])[w["sam_r"]]["mistakes"] == 1  # the agent that wrote the bad fact
+    assert mem.records([w["sam_p"]])[w["sam_p"]]["mistakes"] == 0
     g = mem.remember(w["sam_r"], w["s_sr"], "HQ is in Austin", "org:acme")
     assert mem.supersede(w["sam_p"], w["s_sp"], g, "HQ is in Dallas")["new"]
 
@@ -84,7 +84,7 @@ def test_another_users_agent_cannot_change_a_shared_fact_of_sam(world):
     ):
         with pytest.raises(MemoryGraphError, match="only the author"):
             action()
-    assert status(mem, f) == "active" and mem.trust(w["sam_r"]) == 1.0
+    assert status(mem, f) == "active" and mem.records([w["sam_r"]])[w["sam_r"]]["mistakes"] == 0
     assert mem.g.query("MATCH (n) RETURN count(n)").result_set[0][0] == before
     assert f in ids(mem.recall(w["sam_p"], "org:acme"))  # Sam's memory is unchanged
 

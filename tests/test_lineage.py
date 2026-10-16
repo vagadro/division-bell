@@ -1,4 +1,4 @@
-"""Lineage tests: decide, blast radius, retract, correct, trust. Demo chain: f1 <- f2 <- d1 <- d2, control f3.
+"""Lineage tests: decide, blast radius, retract, correct, accuracy. Demo chain: f1 <- f2 <- d1 <- d2, control f3.
 
 Only the author of a fact can supersede, correct or retract it, so in these tests the Researcher
 (author of f1) is the one who retracts or corrects f1.
@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from memory import MemoryGraphError, TRUST_PENALTY
+from memory import MemoryGraphError
 
 DAY = 24 * 3600 * 1000
 
@@ -41,17 +41,41 @@ def test_decide_builds_lineage_and_explain_shows_it(chain):
         (c["d2"], c["w"], 0), (c["d1"], c["p"], 1), (c["f2"], c["p"], 2), (c["f1"], c["r"], 3)]
 
 
-def test_decide_only_on_shared_active_items(team):
+def test_decide_only_on_active_items_the_agent_may_see(team):
     mem, r, sr, p, sp = team
-    secret = mem.remember(p, sp, "Planner's private note", "org:acme")
+    secret = mem.remember(r, sr, "Researcher's private note", "org:acme")
     with pytest.raises(MemoryGraphError):
-        mem.decide(p, sp, "x", derived_from=[secret])  # even its own private fact is refused
+        mem.decide(p, sp, "x", derived_from=[secret])  # another owner's private fact
     with pytest.raises(MemoryGraphError):
         mem.decide(p, sp, "x", derived_from=["fact:nope"])
     with pytest.raises(MemoryGraphError):
         mem.decide(r, sp, "x")  # Researcher using the Planner's session
-    mem.publish(p, secret)
-    assert mem.decide(p, sp, "now fine", derived_from=[secret]).startswith("dec:")
+
+
+def visibility(mem, item_id):
+    return mem.g.query("MATCH (x {id:$id}) RETURN x.visibility", {"id": item_id}).result_set[0][0]
+
+
+def test_a_decision_is_as_visible_as_its_sources(mem):
+    r, p = (mem.register_agent(n, owner="Deepak") for n in ("Researcher", "Planner"))
+    ravi = mem.register_agent("Planner", owner="Ravi")
+    sr, sp = mem.start_session(r), mem.start_session(p)
+    salary = mem.remember(r, sr, "Deepak's salary is $20,000", "user:deepak")      # private
+    budget = mem.decide(p, sp, "Laptop budget: $1,000", derived_from=[salary])    # the user's other agent may
+    assert visibility(mem, budget) == "private"
+    with pytest.raises(MemoryGraphError):
+        mem.explain(ravi, budget)                                                  # another user may not see it
+    later = mem.decide(p, sp, "Buy in November", derived_from=[budget])
+    assert visibility(mem, later) == "private"                                     # private all the way down
+    with pytest.raises(MemoryGraphError):
+        mem.publish(p, budget)                                                     # its source is still private
+    mem.publish(r, salary)
+    mem.publish(p, budget)
+    assert [x["id"] for x in mem.explain(ravi, budget)][0] == budget
+
+
+def test_a_decision_on_shared_sources_is_shared(chain):
+    assert visibility(chain["mem"], chain["d1"]) == "shared"
 
 
 # --- blast radius (dry run) ---
@@ -95,12 +119,12 @@ def test_flagged_facts_leave_recall_and_show_up_for_their_owners(chain):
     assert mem.flagged(c["r"]) == []  # retracted is not flagged
 
 
-def test_retract_lowers_the_authors_trust_counter_only(chain):
+def test_retract_is_a_mistake_for_the_author_only(chain):
     c = chain
     mem = c["mem"]
     mem.retract(c["r"], c["f1"])
-    assert mem.trust(c["r"]) == pytest.approx(TRUST_PENALTY)
-    assert mem.trust(c["p"]) == 1.0 and mem.trust(c["w"]) == 1.0
+    assert mem.records([c["r"]])[c["r"]]["mistakes"] == 1 and mem.accuracy(c["r"]) < 1.0
+    assert mem.records([c["p"]])[c["p"]]["mistakes"] == 0 and mem.records([c["w"]])[c["w"]]["mistakes"] == 0
 
 
 def test_retract_rules(chain):
@@ -164,7 +188,7 @@ def test_handoff_recipients_are_among_the_agents_to_notify(chain):
     assert editor in out["agents"]
 
 
-def test_supersede_flags_downstream_as_changed_not_wrong_and_costs_no_trust(chain):
+def test_supersede_flags_downstream_as_changed_not_wrong_and_is_no_mistake(chain):
     c = chain
     mem = c["mem"]
     out = mem.supersede(c["r"], c["sr"], c["f1"], "Acme has 520 employees")  # true, then changed
@@ -173,7 +197,7 @@ def test_supersede_flags_downstream_as_changed_not_wrong_and_costs_no_trust(chai
     assert out["flagged"] == sorted([c["f2"], c["d1"], c["d2"]])
     assert [status(mem, c[k]) for k in ("f2", "d1", "d2")] == ["flagged"] * 3
     assert status(mem, c["f1"]) == "superseded" and status(mem, c["f3"]) == "active"
-    assert mem.trust(c["r"]) == 1.0  # nothing was wrong, so no counter change
+    assert mem.records([c["r"]])[c["r"]]["mistakes"] == 0  # nothing was wrong
     item = {f["id"]: f for f in mem.flagged(c["p"])}[c["d1"]]
     assert item["wrong"] == [] and item["changed"] == [{"fact": c["f1"], "now": new}]
 
@@ -231,9 +255,9 @@ def test_other_agents_cannot_supersede_correct_or_retract_a_shared_fact(chain):
         mem.correct(c["p"], c["sp"], c["f1"], "Acme has 50 employees")
     with pytest.raises(MemoryGraphError, match="only the author"):
         mem.retract(c["p"], c["f1"])
-    # nothing moved: the fact, everything built on it, and everyone's trust are as before
+    # nothing moved: the fact, everything built on it, and everyone's record are as before
     assert [status(mem, c[k]) for k in ("f1", "f2", "f3", "d1", "d2")] == ["active"] * 5
-    assert mem.trust(c["r"]) == 1.0
+    assert mem.records([c["r"]])[c["r"]]["mistakes"] == 0
     assert mem.g.query("MATCH (n) RETURN count(n)").result_set[0][0] == nodes_before
     assert c["f1"] in [f["id"] for f in mem.recall(c["p"], "org:acme")]  # Planner's view unchanged
 
@@ -258,7 +282,7 @@ def test_correct_flags_downstream_and_writes_the_right_fact(chain):
     assert out["flagged"] == sorted([c["f2"], c["d1"], c["d2"]])
     assert status(mem, c["f1"]) == "retracted" and status(mem, new) == "active"
     assert status(mem, c["f3"]) == "active"
-    assert mem.trust(c["r"]) == pytest.approx(TRUST_PENALTY)
+    assert mem.records([c["r"]])[c["r"]]["mistakes"] == 1
     # the corrected fact is shared (like the old one), about Acme, and linked by CORRECTS
     assert sorted(f["id"] for f in mem.recall(c["w"], "org:acme")) == sorted([new, c["f3"]])
     links = mem.g.query("MATCH (n:Fact {id:$n})-[:CORRECTS]->(o) RETURN o.id", {"n": new}).result_set
@@ -273,7 +297,7 @@ def test_correct_is_all_or_nothing(chain):
     with pytest.raises(MemoryGraphError):
         mem.correct(c["r"], c["sp"], c["f1"], "x")  # Researcher using the Planner's session
     assert status(mem, c["f1"]) == "active" and status(mem, c["f2"]) == "active"
-    assert mem.trust(c["r"]) == 1.0
+    assert mem.records([c["r"]])[c["r"]]["mistakes"] == 0
     assert mem.g.query("MATCH (n) RETURN count(n)").result_set[0][0] == nodes_before
 
 
