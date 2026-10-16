@@ -538,14 +538,18 @@ ORDER BY p.id
 # verify: record the outcome of an evidence check (web or doc) on an active fact this agent may
 # see. Writes a VERIFIED edge for every outcome and changes nothing else: evidence is about the
 # fact, so a supported check makes that fact trusted, but it is not a score for the agent.
+# Checks on one fact get strictly increasing times (one ms after the last if the clock has not
+# moved), so "the latest check wins" always has an answer.
 # Params: me, id, method, result, sources, snippet, now
 VERIFY = """
 MATCH (me:Agent {id:$me})
 MATCH (author:Agent)-[:ASSERTED]->(f:Fact {id:$id})
 WHERE f.status = 'active'
   AND (f.visibility = 'shared' OR author.id = me.id OR author.owner = me.owner)
-CREATE (me)-[:VERIFIED {method:$method, result:$result, sources:$sources,
-                        snippet:$snippet, at:$now}]->(f)
+OPTIONAL MATCH (:Agent)-[old:VERIFIED]->(f)
+WITH me, f, max(old.at) AS last
+CREATE (me)-[:VERIFIED {method:$method, result:$result, sources:$sources, snippet:$snippet,
+                        at: CASE WHEN last IS NULL OR $now > last THEN $now ELSE last + 1 END}]->(f)
 RETURN f.id
 """
 

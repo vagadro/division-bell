@@ -28,16 +28,12 @@
     <button id="switch" class="link">Switch user</button>
   </header>
 
-  <main>
-    <!-- left: chats, agents, flagged -->
+  <main id="main">
+    <!-- left: chats, flagged -->
     <aside id="left">
       <button id="new-chat">+ New chat</button>
       <h3>Chats</h3>
       <ul id="chats" class="list"></ul>
-      <h3>Your agents</h3>
-      <ul id="my-agents" class="list"></ul>
-      <h3>Others in this org</h3>
-      <ul id="other-agents" class="list muted"></ul>
       <h3>Flagged <span id="flag-count" class="pill warn hidden"></span></h3>
       <ul id="flagged" class="list"></ul>
     </aside>
@@ -51,11 +47,15 @@
       </form>
     </section>
 
-    <!-- right: graph + inspector -->
+    <!-- right: graph + inspector, collapsible -->
     <section id="right">
+      <button id="open-graph" class="link" title="Show the memory graph">Memory graph</button>
       <div class="panel-head">
         <h3>Memory graph <span class="muted small">(what you may see)</span></h3>
-        <button id="refresh-graph" class="link">Refresh</button>
+        <span>
+          <button id="refresh-graph" class="link">Refresh</button>
+          <button id="close-graph" class="link" title="Hide the graph">Hide</button>
+        </span>
       </div>
       <div id="graph"></div>
       <div id="legend" class="small">

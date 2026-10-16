@@ -19,8 +19,14 @@ button.danger { background: var(--flagged); border-color: var(--flagged); }
 
 header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .spacer { flex: 1; }
-main { display: grid; grid-template-columns: 250px minmax(320px, 1fr) minmax(360px, 1.1fr); height: calc(100vh - 49px); }
-@media (max-width: 900px) { main { grid-template-columns: 1fr; height: auto; } #graph { height: 380px; } }
+/* the chat is the main column; the graph gets about a third of the width, never more than 520px */
+main { display: grid; grid-template-columns: 220px minmax(360px, 1fr) clamp(320px, 30vw, 520px); height: calc(100vh - 49px); }
+main.graph-closed { grid-template-columns: 220px minmax(360px, 1fr) 36px; }
+@media (max-width: 900px) {
+  main, main.graph-closed { grid-template-columns: 1fr; height: auto; }
+  #graph { height: 380px; }
+  #middle { height: 70vh; }
+}
 
 aside, section { min-height: 0; }
 #left { padding: 12px; border-right: 1px solid var(--line); background: var(--panel); overflow-y: auto; }
@@ -31,9 +37,6 @@ aside, section { min-height: 0; }
 #chats li { cursor: pointer; }
 #chats li:hover { background: var(--agent); }
 #chats li.current { background: var(--user); font-weight: 600; }
-.agent-row { display: flex; justify-content: space-between; gap: 8px; }
-.agent-row.busy { background: var(--handoff); }
-.trust.low { color: var(--flagged); font-weight: 600; }
 #flagged li { white-space: normal; font-size: 12px; border-left: 3px solid var(--flagged); margin-bottom: 4px; background: #fff5f5; }
 #flagged li.changed { border-left-color: var(--warn); background: #fff9db; }
 
@@ -54,6 +57,13 @@ details.steps summary { cursor: pointer; color: var(--muted); }
 #input { flex: 1; resize: none; font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 6px; }
 
 #right { display: flex; flex-direction: column; background: var(--panel); }
+#open-graph { display: none; }
+/* collapsed: only the "Memory graph" button is left, as a vertical strip (a bar on small screens) */
+main.graph-closed #right > :not(#open-graph) { display: none; }
+main.graph-closed #open-graph { display: block; height: 100%; writing-mode: vertical-rl; padding: 12px 0; }
+@media (max-width: 900px) {
+  main.graph-closed #open-graph { height: auto; writing-mode: horizontal-tb; width: 100%; padding: 10px; }
+}
 .panel-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px 0; }
 .panel-head h3 { margin: 0; font-size: 14px; }
 #graph { flex: 1; min-height: 300px; }

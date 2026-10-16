@@ -164,7 +164,6 @@ $("send-form").addEventListener("submit", async (e) => {
   $("messages").append(el("div", { class: "msg user" }, text));
   const pending = el("div", { class: "msg agent pending" }, "The team is working…");
   $("messages").append(pending); scrollDown();
-  setBusyAgents(true);
   try {
     const out = await api("POST", `/api/chats/${state.chat}/messages`, { text });
     const { messages } = await api("GET", `/api/chats/${state.chat}`);
@@ -173,7 +172,7 @@ $("send-form").addEventListener("submit", async (e) => {
   } catch (err) {
     pending.textContent = "Error: " + err.message;
   } finally {
-    state.busy = false; $("send").disabled = false; setBusyAgents(false);
+    state.busy = false; $("send").disabled = false;
     scrollDown();
     await Promise.all([renderChats(), refreshPanels()]);
   }
@@ -184,24 +183,11 @@ $("input").addEventListener("keydown", (e) => {
 });
 
 function scrollDown() { $("messages").scrollTop = $("messages").scrollHeight; }
-function setBusyAgents(on) { for (const li of $("my-agents").children) li.classList.toggle("busy", on); }
 
 // --- side panels ---
 
 async function refreshPanels() {
-  const [agents, flagged, status] = await Promise.all([
-    api("GET", "/api/agents"), api("GET", "/api/flagged"), api("GET", "/api/status")]);
-  // accuracy = (claims - mistakes + 4) / (claims + 4); facts the user told it never count
-  const row = (a) => el("li", { class: "agent-row" }, el("span", {}, `${a.name}`),
-    el("span", { class: "trust" + (a.accuracy < 0.75 ? " low" : ""),
-      title: `accuracy: ${a.mistakes} wrong of ${a.claims} claim(s) it made itself` },
-      accuracyLabel(a)));
-  const ours = agents.agents.filter((a) => mine(a.id));
-  const others = agents.agents.filter((a) => !mine(a.id));
-  $("my-agents").replaceChildren(...ours.map(row));
-  $("other-agents").replaceChildren(...(others.length ? others.map((a) => {
-    const li = row(a); li.firstChild.textContent = `${(a.owner || "").replace("user:", "")} · ${a.name}`; return li;
-  }) : [el("li", {}, "Nobody else yet")]));
+  const [flagged, status] = await Promise.all([api("GET", "/api/flagged"), api("GET", "/api/status")]);
 
   const items = Object.entries(flagged.flagged).flatMap(([role, list]) => list.map((i) => ({ ...i, role })));
   $("flagged").replaceChildren(...items.map((i) => el("li", {
@@ -220,7 +206,26 @@ const COLORS = { active: "#2f9e44", flagged: "#e03131", retracted: "#868e96", su
 const SHAPES = { Fact: "ellipse", Decision: "diamond", Procedure: "hexagon", Entity: "round-rectangle",
   Agent: "triangle", Message: "tag" };
 
+// The graph panel can be hidden (it takes a lot of room). Open by default on wide screens, closed on
+// small ones; the choice is remembered in this browser. While hidden, nothing is fetched.
+function graphOpen() { return !$("main").classList.contains("graph-closed"); }
+
+function setGraphOpen(open) {
+  $("main").classList.toggle("graph-closed", !open);
+  saveLocal("graph", open ? "open" : "closed");
+  if (open) drawGraph().then(() => { state.cy.resize(); state.cy.fit(undefined, 20); });
+}
+
+$("open-graph").addEventListener("click", () => setGraphOpen(true));
+$("close-graph").addEventListener("click", () => setGraphOpen(false));
+{
+  const saved = recallLocal("graph");
+  $("main").classList.toggle("graph-closed",
+    saved ? saved === "closed" : window.matchMedia("(max-width: 900px)").matches);
+}
+
 async function drawGraph() {
+  if (!graphOpen()) return;
   const view = await api("GET", "/api/graph");
   const elements = [
     ...view.nodes.map((n) => ({ data: { ...n, name: short(n.text || n.id, 28) } })),
