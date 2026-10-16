@@ -65,6 +65,7 @@ RETURN old.id AS id, new.id AS new_id, [n IN affected | n.id] AS flagged
 # recall: current facts about an entity that this agent may see (shared, or its owner's own
 # private ones), each with the ids of what it was built on, up to 3 hops back.
 # Only status 'active' is returned, so superseded, retracted and flagged facts are left out.
+# Also returns the author and its trust, whether a check found it supported, most trusted first.
 # Params: entity, me
 RECALL = """
 MATCH (me:Agent {id:$me})
@@ -72,8 +73,10 @@ MATCH (author:Agent)-[:ASSERTED]->(f:Fact)-[:ABOUT]->(:Entity {id:$entity})
 WHERE f.status = 'active' AND f.valid_to IS NULL
   AND (f.visibility = 'shared' OR author.id = me.id OR author.owner = me.owner)
 OPTIONAL MATCH (f)-[:DERIVED_FROM*1..3]->(src)
-RETURN f.id AS id, f.text AS text, collect(DISTINCT src.id) AS built_on
-ORDER BY id
+OPTIONAL MATCH (:Agent)-[v:VERIFIED {result:'supported'}]->(f)
+RETURN f.id AS id, f.text AS text, collect(DISTINCT src.id) AS built_on,
+       author.id AS author, author.trust AS trust, count(DISTINCT v) > 0 AS verified
+ORDER BY trust DESC, id
 """
 
 # provenance (explain): the chain behind an item, nearest first, with the agent who asserted
@@ -95,8 +98,10 @@ WHERE f.status IN ['active', 'superseded']
   AND f.valid_from <= $t AND (f.valid_to IS NULL OR f.valid_to > $t)
   AND (f.visibility = 'shared' OR author.id = me.id OR author.owner = me.owner)
 OPTIONAL MATCH (f)-[:DERIVED_FROM*1..3]->(src)
-RETURN f.id AS id, f.text AS text, collect(DISTINCT src.id) AS built_on
-ORDER BY id
+OPTIONAL MATCH (:Agent)-[v:VERIFIED {result:'supported'}]->(f)
+RETURN f.id AS id, f.text AS text, collect(DISTINCT src.id) AS built_on,
+       author.id AS author, author.trust AS trust, count(DISTINCT v) > 0 AS verified
+ORDER BY trust DESC, id
 """
 
 # Which of these ids are facts/decisions/procedures this agent may see (shared, or its owner's own)?
@@ -419,4 +424,27 @@ WHERE p.status = 'active'
 OPTIONAL MATCH (p)-[:DERIVED_FROM]->(src)
 RETURN p.id, p.name, p.steps, collect(DISTINCT src.id)
 ORDER BY p.id
+"""
+
+# --- verification ---
+
+# verify: record the outcome of an evidence check (web or doc) on an active fact this agent may
+# see. Writes a VERIFIED edge for every outcome. Only the FIRST 'supported' outcome for a fact
+# raises its author's trust (by $boost, capped at 1.0). One atomic query, so two parallel
+# checks can't both count as the first.
+# Params: me, id, method, result, sources, snippet, boost, now
+VERIFY = """
+MATCH (me:Agent {id:$me})
+MATCH (author:Agent)-[:ASSERTED]->(f:Fact {id:$id})
+WHERE f.status = 'active'
+  AND (f.visibility = 'shared' OR author.id = me.id OR author.owner = me.owner)
+OPTIONAL MATCH (:Agent)-[prev:VERIFIED {result:'supported'}]->(f)
+WITH me, author, f, count(prev) AS prior,
+     CASE WHEN $result = 'supported' THEN author.trust * $boost ELSE author.trust END AS raised
+CREATE (me)-[:VERIFIED {method:$method, result:$result, sources:$sources,
+                        snippet:$snippet, at:$now}]->(f)
+SET author.trust = CASE WHEN $result = 'supported' AND prior = 0
+                        THEN CASE WHEN raised > 1.0 THEN 1.0 ELSE raised END
+                        ELSE author.trust END
+RETURN author.trust AS trust, ($result = 'supported' AND prior = 0) AS raised
 """

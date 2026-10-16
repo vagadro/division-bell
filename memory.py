@@ -28,7 +28,10 @@ import queries
 INDEXED_LABELS = ("Fact", "Decision", "Agent", "Entity", "Handoff", "Message", "Procedure")
 MESSAGE_ROLES = ("user", "agent", "tool")
 TRUST_PENALTY = 0.9  # an author's trust counter is multiplied by this when its fact is retracted
-TRUST_VERIFY = 0.75  # author trust below this and no verification -> needs_verification (Step 5a)
+TRUST_VERIFY = 0.75  # author trust below this and no supported check -> needs_verification
+TRUST_BOOST = 1.05   # the author's trust is multiplied by this (cap 1.0) on a fact's first supported check
+VERIFY_METHODS = ("web", "doc")  # evidence must come from outside the agents: a web search or a document
+VERIFY_RESULTS = ("supported", "contradicted", "unclear")
 
 
 class MemoryGraphError(Exception):
@@ -433,14 +436,44 @@ class Memory:
     def recall(self, agent, entity, as_of=None):
         """Active facts about an entity this agent may see, each with the ids it was built on.
 
-        Retracted and flagged facts are left out. as_of=None gives what is current now; a
+        Each fact carries its author's trust and is listed most trusted first (low trust is never
+        hidden). needs_verification is true when that trust is below TRUST_VERIFY and no agent has
+        verified the fact. Retracted and flagged facts are left out. as_of=None gives what is current now; a
         timestamp (ms) gives what was true then.
         """
         if as_of is None:
             res = self.g.query(queries.RECALL, {"entity": entity, "me": agent})
         else:
             res = self.g.query(queries.RECALL_AS_OF, {"entity": entity, "me": agent, "t": as_of})
-        return [{"id": r[0], "text": r[1], "built_on": sorted(r[2])} for r in res.result_set]
+        return [{"id": r[0], "text": r[1], "built_on": sorted(r[2]), "author": r[3],
+                 "trust": r[4], "verified": r[5],
+                 "needs_verification": r[4] < TRUST_VERIFY and not r[5]}
+                for r in res.result_set]
+
+    def verify(self, agent, fact_id, method, result, sources, snippet=""):
+        """Record the outcome of an evidence check on a fact. Returns {"trust", "trust_raised"}.
+
+        This only records. The check itself (a web search or a read of an uploaded document)
+        is done by the checker in llm.py, which supplies `result`, `sources` and `snippet`.
+        Evidence is required: `sources` (URLs or document names) must not be empty. Any agent
+        that may see the fact can record a check; it does not edit the fact. Only the first
+        'supported' result raises the author's trust. 'contradicted' and 'unclear' are stored
+        but change nothing: retracting is still the owner's decision.
+        """
+        if method not in VERIFY_METHODS:
+            raise MemoryGraphError(f"method must be one of {VERIFY_METHODS}, not {method!r}")
+        if result not in VERIFY_RESULTS:
+            raise MemoryGraphError(f"result must be one of {VERIFY_RESULTS}, not {result!r}")
+        sources = [s for s in (sources or []) if s and s.strip()]
+        if not sources:
+            raise MemoryGraphError("a check needs evidence: at least one source (URL or document name)")
+        rows = self.g.query(queries.VERIFY, {
+            "me": agent, "id": fact_id, "method": method, "result": result,
+            "sources": sources, "snippet": snippet, "boost": TRUST_BOOST, "now": _now()}).result_set
+        if not rows:
+            raise MemoryGraphError(
+                f"cannot verify {fact_id}: not found, not visible to {agent}, or not active")
+        return {"trust": rows[0][0], "trust_raised": bool(rows[0][1])}
 
     def explain(self, agent, item_id):
         """The chain of facts and agents behind an item, nearest first, with each link's status."""
