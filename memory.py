@@ -27,7 +27,8 @@ import queries
 
 INDEXED_LABELS = ("Fact", "Decision", "Agent", "Entity", "Handoff", "Message", "Procedure")
 MESSAGE_ROLES = ("user", "agent", "tool")
-TRUST_PENALTY = 0.8  # an author's trust counter is multiplied by this when its fact is retracted
+TRUST_PENALTY = 0.9  # an author's trust counter is multiplied by this when its fact is retracted
+TRUST_VERIFY = 0.75  # author trust below this and no verification -> needs_verification (Step 5a)
 
 
 class MemoryGraphError(Exception):

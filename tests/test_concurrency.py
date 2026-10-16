@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from memory import MemoryGraphError
+from memory import MemoryGraphError, TRUST_PENALTY
 
 N = 20
 
@@ -42,7 +42,7 @@ def test_parallel_retract_same_fact_lowers_trust_once(team):
     d = mem.decide(p, ps, "built on it", derived_from=[f])
     done, errors = run_parallel(mem.retract, [(r, f)] * N)
     assert len(done) == 1 and len(errors) == N - 1
-    assert mem.trust(r) == pytest.approx(0.8)
+    assert mem.trust(r) == pytest.approx(TRUST_PENALTY)
     assert [x["id"] for x in mem.flagged(p)] == [d]
 
 
