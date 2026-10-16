@@ -13,7 +13,7 @@ from falkordb import FalkorDB
 
 import queries
 
-load_dotenv(ROOT / ".env")
+load_dotenv(ROOT.parent / ".env")  # .env lives in the repo root
 
 # Reset the graph to the known seed first.
 subprocess.run([sys.executable, str(ROOT / "scripts" / "load_schema_dev.py")],

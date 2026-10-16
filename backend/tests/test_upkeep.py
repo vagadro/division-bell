@@ -171,3 +171,11 @@ def test_the_actions_line_lists_changes_and_failures_not_reads():
         "handoff agent:deepak-planner -> handoff:dd)")
     assert _actions_line(json.dumps({"calls": [{"tool": "recall", "args": {}, "result": "{}"}]})) == ""
     assert _actions_line("not json") == ""
+
+
+def test_drafts_are_not_blocked_by_the_copy_check(deepak):
+    deepak.call("remember", {"text": "Visitors to the Infosys campus need an invitation from an employee",
+                             "entity": "org:infosys"})
+    draft = deepak.call("remember", {"text": "Day plan: get an invitation from an Infosys employee, then visit the campus",
+                                     "entity": "doc:infosys-visit", "source": "agent"})
+    assert "id" in draft            # a draft repeats the facts it is written from: not a copy

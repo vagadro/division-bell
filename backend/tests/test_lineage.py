@@ -24,7 +24,9 @@ def chain(mem):
     f3 = mem.remember(r, sr, "Acme HQ is in Austin", "org:acme")  # control: not built on f1
     mem.publish(r, f3)
     d1 = mem.decide(p, sp, "Pitch the enterprise plan", derived_from=[f2])
+    mem.publish(p, d1)  # decisions start private; the Writer (another owner here) builds on it
     d2 = mem.decide(w, sw, "Write the pitch deck", derived_from=[d1])
+    mem.publish(w, d2)
     return dict(mem=mem, r=r, p=p, w=w, sr=sr, sp=sp, sw=sw, f1=f1, f2=f2, f3=f3, d1=d1, d2=d2)
 
 
@@ -74,8 +76,14 @@ def test_a_decision_is_as_visible_as_its_sources(mem):
     assert [x["id"] for x in mem.explain(ravi, budget)][0] == budget
 
 
-def test_a_decision_on_shared_sources_is_shared(chain):
-    assert visibility(chain["mem"], chain["d1"]) == "shared"
+def test_a_decision_starts_private_even_on_shared_sources(chain):
+    c = chain
+    plan = c["mem"].decide(c["p"], c["sp"], "Visit Acme in Austin", derived_from=[c["f3"]])  # f3 is shared
+    assert visibility(c["mem"], plan) == "private"       # a plan made for one user is theirs
+    with pytest.raises(MemoryGraphError):
+        c["mem"].explain(c["r"], plan)                   # another owner can't see it...
+    c["mem"].publish(c["p"], plan)
+    assert c["mem"].explain(c["r"], plan)[0]["id"] == plan   # ...until it is published
 
 
 # --- blast radius (dry run) ---

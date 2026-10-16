@@ -7,7 +7,7 @@ An agent without an owner owns itself.
 Visibility: a fact is `private` (only its owner's agents see it) until it is published.
 An agent may only build on (derive from) active things it can see, and may only publish a fact
 once everything it was built on is shared, so shared lineage never points at hidden items.
-A decision is as visible as its sources: private if any source is private, else shared.
+A decision starts private too (a plan made for one user is theirs) and is shared by publish.
 
 Changes: only the author's owner can supersede, correct or retract a fact, so one user's memory
 never changes because of another user's edit. Items built on a changed fact are flagged
@@ -81,7 +81,7 @@ def user_id(owner):
 
 
 def _connect():
-    load_dotenv(Path(__file__).resolve().parent / ".env")
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")  # .env lives in the repo root
     return FalkorDB(
         host=os.environ["FALKORDB_HOST"],
         port=int(os.environ["FALKORDB_PORT"]),
@@ -241,7 +241,7 @@ class Memory:
 
     def decide(self, agent, session, text, derived_from=(), replaces=()):
         """Record a decision built on active items this agent may see. Returns its id. The decision
-        is private (only its owner's agents see it) if any source is private, else shared.
+        starts private (only its owner's agents see it), like a fact; publish shares it.
         `replaces`: flagged decisions of this user that the new one redoes; they become superseded,
         so they leave the flagged list."""
         derived_from = list(dict.fromkeys(derived_from))
@@ -448,7 +448,8 @@ class Memory:
         return [{"id": r[0], "name": r[1], "steps": r[2], "built_on": sorted(r[3])} for r in rows]
 
     def handoff(self, sender, recipient, item_ids, note=""):
-        """Pass active facts/decisions from one agent to another. Returns the handoff id.
+        """Pass active facts/decisions from one agent to another. Returns the handoff id. Flagged
+        items may be passed too: that is how a teammate is asked to redo or review them.
 
         Every item must be something both agents may see: shared, or private to a user who owns
         both agents. A handoff never shares anything, so to hand a private item to another user's
@@ -461,7 +462,6 @@ class Memory:
         if sender == recipient:
             raise MemoryGraphError("an agent cannot hand off to itself")
         self._require_agent(sender), self._require_agent(recipient)  # raises if either is unknown
-        self._require_sources(sender, item_ids)
         for who in (sender, recipient):
             rows = self.g.query(queries.VISIBLE_ITEMS, {"me": who, "ids": item_ids}).result_set
             hidden = [i for i in item_ids if i not in {r[0] for r in rows}]
@@ -474,7 +474,8 @@ class Memory:
             "sender": sender, "recipient": recipient, "ids": item_ids,
             "id": handoff_id, "note": note, "now": _now()})
         if res.nodes_created == 0:
-            raise MemoryGraphError("handoff failed: an item stopped being active or visible while writing")
+            raise MemoryGraphError("cannot hand off: an item is not active or flagged (retracted or "
+                                   "superseded), or stopped being visible while writing")
         return handoff_id
 
     def inbox(self, agent):

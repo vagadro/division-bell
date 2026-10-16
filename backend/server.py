@@ -6,7 +6,7 @@ authenticated: anyone who sends the same name and org is that user. The server b
 127.0.0.1 only. Each user gets three agents (Researcher, Planner, Writer) on first visit.
 
 Mode: MEMORY_LLM=mock (default, EchoLLM, $0) or MEMORY_LLM=haiku (the real API, spend-capped).
-Run: uv run uvicorn server:app --host 127.0.0.1 --port 8000
+Run (from backend/): uv run uvicorn server:app --host 127.0.0.1 --port 8000
 """
 import os
 import re
@@ -24,7 +24,7 @@ from tools import AgentTools
 
 ORGS = ("DemoOrg1", "DemoOrg2", "DemoOrg3")
 ROLES = ("researcher", "planner", "writer")
-STATIC = Path(__file__).resolve().parent / "static"
+STATIC = Path(__file__).resolve().parent.parent / "frontend"  # the page, served at /static
 # The page may only look: memory changes (publish, correct, retract, confirm...) are made by the
 # agents in the chat, never by a button, as they would be in a real organisation.
 READ_TOOLS = ("recall", "explain", "blast_radius", "flagged", "inbox", "search_history", "recall_procedures")
@@ -175,7 +175,7 @@ def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, do
     def page():
         index = STATIC / "index.html"
         if not index.is_file():
-            raise HTTPException(404, "the page is not built yet (static/index.html)")
+            raise HTTPException(404, "the page is missing (frontend/index.html)")
         return FileResponse(index)
 
     return app

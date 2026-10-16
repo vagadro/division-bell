@@ -158,9 +158,10 @@ WHERE x.visibility IS NULL OR x.visibility = 'shared'
 RETURN DISTINCT x.id
 """
 
-# decide: an agent records a decision built on items it may see. The decision is as visible as
-# its sources: private if any source is private (only its owner's agents see it), else shared.
-# Decisions written before this rule have no visibility property and count as shared.
+# decide: an agent records a decision built on items it may see. Like a fact, it starts private
+# (only its owner's agents see it): a plan made for one user is theirs, even when it is built on
+# shared facts. It is shared only by publish. Decisions written before visibility existed have no
+# visibility property and count as shared.
 # Writes nothing if the agent did not run the session.
 # Params: agent, session, id, text, now, derived_from (list of ids, may be empty)
 DECIDE = """
@@ -170,8 +171,7 @@ OPTIONAL MATCH (src) WHERE src.id IN $derived_from AND labels(src)[0] IN ['Fact'
 WITH a, s, collect(DISTINCT src) AS sources
 WHERE size(sources) = size($derived_from)
 CREATE (d:Decision {id:$id, text:$text, status:'active', created_at:$now, recorded_at:$now,
-                    visibility: CASE WHEN any(x IN sources WHERE x.visibility = 'private')
-                                     THEN 'private' ELSE 'shared' END})
+                    visibility:'private'})
 CREATE (a)-[:ASSERTED]->(d), (d)-[:IN_SESSION]->(s)
 WITH d, sources
 UNWIND sources AS src
@@ -289,14 +289,15 @@ RETURN x.id
 # --- handoffs ---
 
 # handoff: the sender passes items to the recipient. One atomic query, so an item retracted a
-# moment ago can't slip through. Every item must be an active fact/decision that BOTH agents may
+# moment ago can't slip through. Every item must be an active or flagged (a redo request)
+# fact/decision that BOTH agents may
 # see: shared, or private to a user who owns both agents. Nothing is published or shared by
 # handing off. Writes nothing if either agent is unknown, they are the same agent, or any item
 # fails the test. Params: sender, recipient, ids (distinct, not empty), id, note, now
 HANDOFF = """
 MATCH (s:Agent {id:$sender}), (r:Agent {id:$recipient}) WHERE s.id <> r.id
 OPTIONAL MATCH (author:Agent)-[:ASSERTED]->(x)
-  WHERE x.id IN $ids AND labels(x)[0] IN ['Fact', 'Decision'] AND x.status = 'active'
+  WHERE x.id IN $ids AND labels(x)[0] IN ['Fact', 'Decision'] AND x.status IN ['active', 'flagged']
     AND (x.visibility IS NULL OR x.visibility = 'shared'
          OR (author.owner = s.owner AND author.owner = r.owner))
 WITH s, r, collect(DISTINCT x) AS items

@@ -7,7 +7,7 @@ Who it acts as is set by environment variables, never by the model:
   MEMORY_DOCS_DIR  the only folder verify_fact may read documents from (optional)
 FalkorDB credentials and ANTHROPIC_API_KEY come from .env. Identity is not authenticated.
 
-Run:  uv run python mcp_server.py
+Run (from backend/):  uv run python mcp_server.py
 """
 import functools
 import os

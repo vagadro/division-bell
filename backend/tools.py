@@ -90,7 +90,10 @@ class AgentTools:
         return {"id": fact}
 
     def _similar(self, text, entities, distinct_from):
-        """The not-saved answer if facts like this one exist (and were not ruled out), else None."""
+        """The not-saved answer if facts like this one exist (and were not ruled out), else None.
+        Drafts (doc:... entities) are not checked: a draft repeats the facts it is written from."""
+        if any(e.startswith("doc:") for e in entities):
+            return None
         found = [f for f in self.memory.similar_facts(self.agent, text, entities)
                  if f["id"] not in set(distinct_from)]
         return {"saved": False, "similar": found, "what_to_do": SIMILAR_HINT} if found else None
@@ -218,8 +221,8 @@ class AgentTools:
                replaces: Annotated[list[str], Field(description=(
                    "ids of flagged decisions this one redoes; they are closed as superseded"))] = ()) -> dict:
         """Record a decision built on facts or decisions, so it can be traced and flagged if one of
-        them turns out wrong. It stays private to your user if any source is private. To redo a
-        flagged decision, pass it in replaces."""
+        them turns out wrong. It is private to your user (publish shares it). To redo a flagged
+        decision, pass it in replaces."""
         return {"id": self.memory.decide(self.agent, self.session, text, derived_from=list(derived_from),
                                          replaces=list(replaces))}
 
@@ -242,8 +245,9 @@ class AgentTools:
     def handoff(self, recipient: Annotated[str, Field(description="agent id, like agent:sam-planner")],
                 item_ids: Annotated[list[str], Field(min_length=1)],
                 note: Annotated[str, Field(description="what the recipient should do with them")] = "") -> dict:
-        """Pass active facts or decisions to another agent. It never shares anything: publish a
-        private item first if the recipient belongs to another user."""
+        """Pass facts or decisions to another agent. Flagged ones may be passed too, to ask a
+        teammate to redo or review them. It never shares anything: publish a private item first
+        if the recipient belongs to another user."""
         return {"handoff": self.memory.handoff(self.agent, recipient, list(item_ids), note=note)}
 
     def search_history(self, query: Annotated[str, Field(

@@ -87,13 +87,27 @@ def test_retract_reports_the_recipient_and_inbox_shows_status(w):
 
 def test_item_retracted_between_check_and_write_is_not_handed_off(w, monkeypatch):
     mem = w["mem"]
-    real = mem._require_sources
+    real, calls = mem._require_agent, []
 
-    def check_then_retract(*a, **k):
-        real(*a, **k)
-        mem.retract(w["sr"], w["shared"])
-    monkeypatch.setattr(mem, "_require_sources", check_then_retract)
+    def check_then_retract(*a, **k):  # the checks pass, then the item is retracted before the write
+        out = real(*a, **k)
+        calls.append(a)
+        if len(calls) == 2:
+            mem.retract(w["sr"], w["shared"])
+        return out
+    monkeypatch.setattr(mem, "_require_agent", check_then_retract)
     with pytest.raises(MemoryGraphError):
         mem.handoff(w["sr"], w["pp"], [w["shared"]])
     monkeypatch.undo()
     assert count(mem, "Handoff") == 0
+
+
+def test_a_flagged_item_can_be_handed_to_a_teammate_to_redo(mem):
+    r, p = (mem.register_agent(n, owner="Deepak") for n in ("Researcher", "Planner"))
+    sr = mem.start_session(r, team=[p])
+    fact = mem.remember(r, sr, "Acme HQ is in Austin", "org:acme")
+    plan = mem.decide(p, sr, "Visit Austin", derived_from=[fact])
+    mem.correct(r, sr, fact, "Acme HQ is in Dallas")
+    assert mem.handoff(r, p, [plan], note="redo: HQ is Dallas")         # flagged: a redo request
+    with pytest.raises(MemoryGraphError):
+        mem.handoff(r, p, [fact])                                       # retracted: never
