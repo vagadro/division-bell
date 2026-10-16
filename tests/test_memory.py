@@ -111,6 +111,21 @@ def test_new_fact_inherits_visibility_and_entity(team):
     assert mem.recall(p, "org:acme") == []  # still private
 
 
+def test_one_fact_about_several_entities(team):
+    # "I work at Google Delhi" is about the user AND Google: one node, two ABOUT edges, so a move
+    # leaves exactly one old (superseded) and one new (active) fact, found from either entity
+    mem, r, sr, p, sp = team
+    old = mem.remember(r, sr, "Sam works at Google Delhi", "user:sam",
+                       also_about=["org:google", "org:google", "user:sam"])  # repeats are ignored
+    assert ids(mem.recall(r, "user:sam")) == ids(mem.recall(r, "org:google")) == [old]
+    new = mem.supersede(r, sr, old, "Sam works at Google Bangalore")["new"]
+    assert ids(mem.recall(r, "user:sam")) == ids(mem.recall(r, "org:google")) == [new]
+    rows = mem.g.query("MATCH (f:Fact) RETURN f.status ORDER BY f.status").result_set
+    assert [row[0] for row in rows] == ["active", "superseded"]
+    about = mem.g.query("MATCH (:Fact {id:$n})-[:ABOUT]->(e) RETURN e.id ORDER BY e.id", {"n": new}).result_set
+    assert [row[0] for row in about] == ["org:google", "user:sam"]
+
+
 def test_explain_walks_back_to_the_root_with_agents(team):
     mem, r, sr, p, sp = team
     f1 = mem.remember(r, sr, "root fact", "org:acme")

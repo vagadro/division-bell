@@ -28,6 +28,7 @@ from uuid import uuid4
 from dotenv import load_dotenv
 
 from documents import select_passages
+from memory import user_id
 
 load_dotenv()
 
@@ -207,6 +208,15 @@ Rules for every agent:
 - If a tool returns an error, read it and fix the call, or tell the user what went wrong.
 - A handoff to a teammate starts that teammate at once, with your note as its task. Hand off
   only when the teammate has work to do; otherwise your reply goes to the user.
+- Upkeep is automatic: nobody will ask you to fix memory. If the system prompt lists "Needs
+  attention", handle the items that are yours as part of this turn, then answer the user:
+  * flagged, source changed: compare with the new fact; confirm it if it still holds, else redo it.
+  * flagged, source wrong: redo it on the corrected facts (decide with replaces, or supersede
+    the flagged fact).
+  * flagged item of a teammate: hand off to that teammate with the ids and what changed.
+  * disputed fact: web_search it, then supersede (it changed) or correct (it was wrong), or
+    check_fact supported if your search shows it still holds.
+  If a redo changes something the user was told before, say so in one short sentence.
 - Reply like a friendly, normal assistant. Never mention saving, memory, notes, tools, ids or
   privacy in your reply: the app shows the user that separately. Keep answers short. When an
   answer comes from the web, end with the source link."""
@@ -216,19 +226,36 @@ ROLE_PROMPTS = {
 
 You are the Researcher, and you lead: every user message comes to you first.
 - Never answer a factual question from your own knowledge. Look it up in this order:
-  1. recall the entity it is about (saved facts). Use them if active and not needing verification.
+  1. recall the entity it is about (saved facts).
   2. search_history, if it may depend on something the user said in an earlier chat.
-  3. web_search, only for facts about the outside world.
+  3. web_search, only for facts about the outside world, and only if steps 1-2 found no answer.
+- If recall returns an active fact that answers the question and its standing is "verified" or
+  "user", answer from it and do NOT call web_search, even if another user saved it. Search only
+  if no saved fact answers it, the fact needs verification, or the user asks for fresh information.
 - After a web_search, save what you found with save_web_fact,
   citing only URLs from the search results. Then answer with the source.
+- If remember or save_web_fact answers saved: false, it found similar saved facts. Follow its
+  what_to_do: never force a copy of the same claim through with distinct_from.
 - When the user tells you something about themselves or their work, save it with remember,
-  source "user" (it stays private). When you read a document with read_document, save the facts
+  source "user" (it stays private). Never web_search or question what the user says about
+  themselves (their job, office, plans): they know it better than any web page.
+- When the user tells you something only about the outside world (a company, a place, a number), save
+  it with remember, source "user", then web_search it and record the result with check_fact:
+  supported shares it with the team automatically; contradicted means you tell the user what the
+  sources say (and correct the fact if the user agrees).
+- Save each claim ONCE. If it is about several things ("I work at Google": the user and Google),
+  pick the main entity and list the others in also_about. Never save a second copy of the same
+  claim under another entity. When you read a document with read_document, save the facts
   you need with remember, source "document". Use source "agent" only for something you worked
   out yourself.
 - When the user says a saved fact is wrong ("Acme has 50 employees, not 500"), recall it, then
   use correct on the old fact with the right text and the reason. If it was right before and
   has since changed ("we moved office"), use supersede instead. Never just save a second fact
   next to the wrong one: correct is what flags everything that was built on it.
+- The same goes for the web: if a search finds a newer value for a fact recall returned (a new
+  headcount, a new address), supersede that fact with the new value and its sources if it is
+  your user's; if it is another user's, check_fact it as contradicted (note the new value), then
+  save yours with save_web_fact and distinct_from. Never leave two values active that you could fix.
 - Greetings, arithmetic and rewording need no lookup.
 - If the user wants a plan, a decision or a written draft, do the research part, then hand off
   to the Planner with the fact ids and a note saying what is needed.""",
@@ -239,7 +266,8 @@ You are the Planner. Work reaches you as a handoff note with item ids.
 - Recall the facts you need, then record each decision with decide, built on those fact ids.
 - If the user needs a written draft, hand off to the Writer with the decision ids and a note.
   Otherwise answer with the decision and why.
-- If an item you built on was flagged, check flagged and redo only what it lists.""",
+- If a decision of yours was flagged, redo only that one: decide again on the corrected facts
+  with replaces=[the flagged decision id], or confirm it if its source only changed and it still holds.""",
 
     "writer": TEAM + """
 
@@ -247,7 +275,8 @@ You are the Writer. Work reaches you as a handoff note with item ids.
 - Write the draft the note asks for, using only the facts and decisions you were handed or can
   recall. Save the draft with remember (entity doc:<topic>), derived_from the decision ids.
 - Answer with the draft.
-- If an item you built on was flagged, check flagged and rewrite only what it lists.""",
+- If a draft of yours was flagged, rewrite only that draft: supersede the flagged draft fact with
+  the new text and derived_from=[the new decision id].""",
 }
 
 
@@ -314,7 +343,7 @@ def chat_turn(tools, role, user_text, client=None, spend=None, owner=None,
     system = [
         {"type": "text", "text": ROLE_PROMPTS[role], "cache_control": {"type": "ephemeral"}},
         # changes per user, so it goes after the cached part
-        {"type": "text", "text": _who(tools, owner)},
+        {"type": "text", "text": _who(tools, owner) + _attention(memory, tools.agent)},
     ]
 
     calls, reply, stop = [], "", "round_cap"
@@ -437,6 +466,24 @@ def _as_api_messages(history, me):
     return out
 
 
+ATTENTION_ITEMS = 8  # most flagged or disputed items shown per turn
+
+
+def _attention(memory, agent):
+    """The 'Needs attention' part of the system prompt: flagged items of the user's team and the
+    user's facts another user disputes. Empty when there is nothing, so most turns pay nothing."""
+    todo = memory.needs_attention(agent)
+    lines = []
+    for f in todo["flagged"][:ATTENTION_ITEMS]:
+        why = (f"source wrong: {', '.join(f['wrong'])}" if f["wrong"] else
+               "source changed: " + ", ".join(f"{c['fact']} -> now {c['now']}" for c in f["changed"]))
+        lines.append(f"- flagged {f['kind']} {f['id']} by {f['author']}: \"{f['text']}\" ({why})")
+    for d in todo["disputed"][:ATTENTION_ITEMS]:
+        lines.append(f"- disputed fact {d['id']} by {d['author']}: \"{d['text']}\" "
+                     f"({d['by']} found: {d['note'] or 'contradicted'}; sources: {', '.join(d['sources'])})")
+    return "\n\nNeeds attention (your user's team):\n" + "\n".join(lines) if lines else ""
+
+
 def _role_of(agent):
     return agent.rsplit("-", 1)[-1]  # agent:deepak-planner -> planner
 
@@ -445,7 +492,8 @@ def _who(tools, owner):
     me = tools.agent
     prefix = me.rsplit("-", 1)[0]  # agent:deepak-researcher -> agent:deepak
     team = ", ".join(f"{prefix}-{r}" for r in ROLE_PROMPTS if f"{prefix}-{r}" != me)
-    user = f"You work for the user {owner}. " if owner else ""
+    user = (f"You work for the user {owner}. Facts about the user go under the entity "
+            f"{user_id(owner)}: always use exactly that id to remember or recall them. ") if owner else ""
     return f"{user}Your agent id is {me}. Your teammates: {team}."
 
 

@@ -48,6 +48,7 @@ def test_the_system_prompt_is_cached_and_names_the_user_after_the_cache(deepak):
     assert fixed["cache_control"] == {"type": "ephemeral"} and "Deepak" not in fixed["text"]
     assert "cache_control" not in per_user
     assert "Deepak" in per_user["text"] and "agent:deepak-planner" in per_user["text"]
+    assert "user:deepak" in per_user["text"]  # the user's entity id is given, never guessed
 
 
 def test_earlier_messages_of_the_chat_are_sent_nothing_else(deepak):

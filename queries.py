@@ -14,7 +14,8 @@ may see a private fact and who may change, retract, publish or confirm a fact.
 # own claim). Only non-user facts count toward the author's accuracy.
 # Params: agent, session, entity, entity_name, entity_type, id, text, conf, valid_from, now, source,
 #         derived_from (list of distinct ids, may be empty), from_messages (message ids, may be empty;
-#         EXTRACTED_FROM edges, which blast radius never follows)
+#         EXTRACTED_FROM edges, which blast radius never follows), also_about (more entity ids
+#         the same fact is about: one node with several ABOUT edges, never a copy per entity)
 # Check and write are ONE query: if any source is not an active fact/decision (e.g. it was
 # retracted a moment ago) nothing is written, so a retract can never slip in between.
 # Writes nothing, too, if the agent did not run the session (the caller should check the stats).
@@ -29,6 +30,9 @@ MERGE (e:Entity {id:$entity})
 CREATE (f:Fact {id:$id, text:$text, visibility:'private', status:'active', source:$source,
                 confidence:$conf, valid_from:$valid_from, recorded_at:$now})
 CREATE (a)-[:ASSERTED]->(f), (f)-[:ABOUT]->(e), (f)-[:IN_SESSION]->(s)
+WITH f, sources
+FOREACH (x IN $also_about | MERGE (o:Entity {id:x}) ON CREATE SET o.name = x, o.type = 'thing'
+                            CREATE (f)-[:ABOUT]->(o))
 WITH f, sources
 OPTIONAL MATCH (m:Message) WHERE m.id IN $from_messages
 WITH f, sources, collect(m) AS msgs
@@ -67,8 +71,8 @@ RETURN old.id AS id, new.id AS new_id, [n IN affected | n.id] AS flagged
 # recall: current facts about an entity that this agent may see (shared, or its owner's own
 # private ones), each with the ids of what it was built on, up to 3 hops back.
 # Only status 'active' is returned, so superseded, retracted and flagged facts are left out.
-# Also returns the author, the fact's source, and whether checks supported or contradicted it
-# (the caller adds the author's accuracy and the fact's standing, and sorts).
+# Also returns the author, the fact's source, and when a check last supported or contradicted it
+# (the caller adds the author's accuracy and the fact's standing, and sorts; the latest check wins).
 # Params: entity, me
 RECALL = """
 MATCH (me:Agent {id:$me})
@@ -79,8 +83,7 @@ OPTIONAL MATCH (f)-[:DERIVED_FROM*1..3]->(src)
 OPTIONAL MATCH (:Agent)-[v:VERIFIED {result:'supported'}]->(f)
 OPTIONAL MATCH (:Agent)-[x:VERIFIED {result:'contradicted'}]->(f)
 RETURN f.id AS id, f.text AS text, collect(DISTINCT src.id) AS built_on, author.id AS author,
-       coalesce(f.source, 'agent') AS source, count(DISTINCT v) > 0 AS supported,
-       count(DISTINCT x) > 0 AS contradicted
+       coalesce(f.source, 'agent') AS source, max(v.at) AS supported_at, max(x.at) AS contradicted_at
 """
 
 # provenance (explain): the chain behind an item, nearest first, with the agent who asserted
@@ -105,8 +108,7 @@ OPTIONAL MATCH (f)-[:DERIVED_FROM*1..3]->(src)
 OPTIONAL MATCH (:Agent)-[v:VERIFIED {result:'supported'}]->(f)
 OPTIONAL MATCH (:Agent)-[x:VERIFIED {result:'contradicted'}]->(f)
 RETURN f.id AS id, f.text AS text, collect(DISTINCT src.id) AS built_on, author.id AS author,
-       coalesce(f.source, 'agent') AS source, count(DISTINCT v) > 0 AS supported,
-       count(DISTINCT x) > 0 AS contradicted
+       coalesce(f.source, 'agent') AS source, max(v.at) AS supported_at, max(x.at) AS contradicted_at
 """
 
 # Which of these ids are facts/decisions/procedures this agent may see (shared, or its owner's own)?
@@ -252,7 +254,8 @@ MATCH (me:Agent {id:$me})
 MATCH (author:Agent)-[:ASSERTED]->(x)
 WHERE x.status = 'flagged' AND (author.id = me.id OR author.owner = me.owner)
 RETURN x.id AS id, x.text AS text, x.flagged_by AS because,
-       coalesce(x.flag_wrong, []) AS wrong, coalesce(x.flag_changed, []) AS changed
+       coalesce(x.flag_wrong, []) AS wrong, coalesce(x.flag_changed, []) AS changed,
+       author.id AS author, labels(x)[0] AS kind
 ORDER BY id
 """
 
@@ -358,6 +361,8 @@ ORDER BY m.seq
 # Full-text index on message text (FalkorDB runs it on RediSearch): built as messages are
 # written, so a search is an index lookup, not a scan of every message.
 CREATE_MESSAGE_TEXT_INDEX = "CALL db.idx.fulltext.createNodeIndex('Message', 'text')"
+# The same for fact text, so a new fact can be compared with similar ones under any entity.
+CREATE_FACT_TEXT_INDEX = "CALL db.idx.fulltext.createNodeIndex('Fact', 'text')"
 
 # search past chats: messages matching $q, ranked by the index's relevance score, only from
 # sessions run by this agent's user, optionally leaving out one session (the current chat).
@@ -542,4 +547,71 @@ WHERE f.status = 'active'
 CREATE (me)-[:VERIFIED {method:$method, result:$result, sources:$sources,
                         snippet:$snippet, at:$now}]->(f)
 RETURN f.id
+"""
+
+
+# --- automatic upkeep ---
+
+# Candidates for "is this new fact a copy of one we have?": active facts this agent may see,
+# (1) about any of the new fact's entities, or (2) matching its words in the full-text index under
+# any entity (that is how a copy saved under another entity is caught). The caller keeps only those
+# with enough words in common. `yours` = the agent's user may change it. Params: me, entities, q, limit
+SIMILAR_BY_ENTITY = """
+MATCH (me:Agent {id:$me})
+MATCH (author:Agent)-[:ASSERTED]->(f:Fact)-[:ABOUT]->(e:Entity)
+WHERE e.id IN $entities AND f.status = 'active'
+  AND (f.visibility = 'shared' OR author.id = me.id OR author.owner = me.owner)
+RETURN DISTINCT f.id, f.text, author.id, author.owner = me.owner
+"""
+SIMILAR_BY_TEXT = """
+CALL db.idx.fulltext.queryNodes('Fact', $q) YIELD node, score
+WITH node AS f, score WHERE f.status = 'active'
+MATCH (me:Agent {id:$me})
+MATCH (author:Agent)-[:ASSERTED]->(f)
+WHERE f.visibility = 'shared' OR author.id = me.id OR author.owner = me.owner
+RETURN f.id, f.text, author.id, author.owner = me.owner
+ORDER BY score DESC
+LIMIT $limit
+"""
+
+# Facts of my user's agents that another user's evidence check contradicts, and that no check has
+# supported since: my agents should look at them (supersede, correct, or check them again).
+# Another user can never edit my facts, so this is how they tell me. Params: me
+DISPUTES = """
+MATCH (me:Agent {id:$me})
+MATCH (author:Agent)-[:ASSERTED]->(f:Fact {status:'active'})
+WHERE author.id = me.id OR author.owner = me.owner
+MATCH (by:Agent)-[x:VERIFIED {result:'contradicted'}]->(f) WHERE by.owner <> me.owner
+OPTIONAL MATCH (:Agent)-[v:VERIFIED {result:'supported'}]->(f)
+WITH f, author, by, x, max(v.at) AS supported_at
+WHERE supported_at IS NULL OR supported_at < x.at
+RETURN f.id, f.text, author.id, by.id, x.snippet, x.sources, x.at
+ORDER BY x.at DESC
+"""
+
+# What the automatic sharing rule needs to know about a fact. Params: id
+FACT_INFO = """
+MATCH (author:Agent)-[:ASSERTED]->(f:Fact {id:$id})
+OPTIONAL MATCH (f)-[:ABOUT]->(e:Entity)
+RETURN f.visibility, f.status, coalesce(f.source, 'agent'), author.owner, collect(e.id)
+"""
+
+# A new decision redoes flagged ones: they become superseded (history, out of every flagged list)
+# and the new one points to them. Only flagged decisions of the same user. Params: new, old, me
+REPLACE_DECISIONS = """
+MATCH (me:Agent {id:$me})
+MATCH (new:Decision {id:$new})
+MATCH (author:Agent)-[:ASSERTED]->(old:Decision)
+WHERE old.id IN $old AND old.status = 'flagged' AND (author.id = me.id OR author.owner = me.owner)
+SET old.status = 'superseded', old.superseded_at = timestamp()
+CREATE (new)-[:SUPERSEDES]->(old)
+RETURN old.id
+"""
+
+# Link a fact that was just written (by supersede) to the items it is built on. The caller has
+# checked them with USABLE_SOURCES; only active ones are linked. Params: id, ids
+LINK_SOURCES = """
+MATCH (n:Fact {id:$id})
+MATCH (src) WHERE src.id IN $ids AND labels(src)[0] IN ['Fact', 'Decision'] AND src.status = 'active'
+CREATE (n)-[:DERIVED_FROM]->(src)
 """

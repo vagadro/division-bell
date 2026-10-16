@@ -38,6 +38,14 @@ FACT_SOURCES = ("user", "web", "document", "agent")  # "user" facts never count 
 STANDING_ORDER = {"verified": 0, "user": 1, "unverified": 2, "doubtful": 3}
 VERIFY_METHODS = ("web", "doc")  # evidence must come from outside the agents: a web search or a document
 VERIFY_RESULTS = ("supported", "contradicted", "unclear")
+# A new fact counts as similar to a saved one when they share at least SIMILAR_MIN_WORDS content
+# words and that is at least SIMILAR_MIN of the shorter one's words. Loose on purpose: a false
+# alarm costs the agent one look, a missed copy leaves a stale fact active.
+SIMILAR_MIN, SIMILAR_MIN_WORDS = 0.4, 3
+STOPWORDS = frozenset("""a an the and or but of in on at to for with by from as is are was were be been
+has have had it its this that these those their there than then so such into about over per via
+who whom which what when where while also very just only not no yes do does did i my me we our you
+your he she they them his her""".split())
 
 
 class MemoryGraphError(Exception):
@@ -54,6 +62,22 @@ def _new_id(prefix):
 
 def _slug(text):
     return text.strip().lower().replace(" ", "-")
+
+
+def _content_words(text):
+    """Lowercase words of a text without stopwords, a plural 's' cut off: 'Google's offices' ->
+    {'google', 'office'}. Numbers stay, so 190,820 and 198,933 differ."""
+    words = set()
+    for w in re.findall(r"[a-z0-9]+", (text or "").lower()):
+        if w in STOPWORDS or (len(w) < 2 and not w.isdigit()):
+            continue
+        words.add(w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss") else w)
+    return words
+
+
+def user_id(owner):
+    """The id of a user, as an agent's owner and as the entity facts about the user are ABOUT."""
+    return f"user:{_slug(owner)}"
 
 
 def _connect():
@@ -77,9 +101,9 @@ class Memory:
     # --- admin ---
 
     def setup(self):
-        """Create the id indexes and the full-text index on message text. Safe to call repeatedly."""
+        """Create the id indexes and the full-text indexes on message and fact text. Safe to call repeatedly."""
         statements = [f"CREATE INDEX FOR (n:{label}) ON (n.id)" for label in INDEXED_LABELS]
-        statements.append(queries.CREATE_MESSAGE_TEXT_INDEX)
+        statements += [queries.CREATE_MESSAGE_TEXT_INDEX, queries.CREATE_FACT_TEXT_INDEX]
         for statement in statements:
             try:
                 self.g.query(statement)
@@ -98,7 +122,7 @@ class Memory:
         """Create (or find) an agent. With an owner, the id includes it (agent:sam-researcher), so
         two users can each have a "Researcher". Safe to call repeatedly."""
         if owner:
-            agent_id, owner_id = f"agent:{_slug(owner)}-{_slug(name)}", f"user:{_slug(owner)}"
+            agent_id, owner_id = f"agent:{_slug(owner)}-{_slug(name)}", user_id(owner)
         else:
             agent_id = f"agent:{_slug(name)}"
             owner_id = agent_id  # an agent without a user owns itself
@@ -134,6 +158,13 @@ class Memory:
         counts = {r[0]: (int(r[1]), int(r[2])) for r in rows}
         return {a: {"claims": c, "mistakes": m, "accuracy": (c - m + PRIOR_CORRECT) / (c + PRIOR_CORRECT)}
                 for a, (c, m) in counts.items()}
+
+    def owner_of(self, agent):
+        """The agent's owner id (user:sam), or its own id if it has no user."""
+        rows = self.g.query("MATCH (a:Agent {id:$id}) RETURN a.owner", {"id": agent}).result_set
+        if not rows:
+            raise MemoryGraphError(f"unknown agent {agent!r}")
+        return rows[0][0] or agent
 
     def accuracy(self, agent):
         """The agent's accuracy (1.0 for a new agent). Raises for an unknown agent."""
@@ -180,14 +211,17 @@ class Memory:
     # --- write ---
 
     def remember(self, agent, session, text, entity, entity_name=None, entity_type="thing",
-                 confidence=0.5, derived_from=(), valid_from=None, from_messages=(), source="agent"):
-        """Write a private fact. Returns its id. `from_messages` records which conversation
+                 confidence=0.5, derived_from=(), valid_from=None, from_messages=(), source="agent",
+                 also_about=()):
+        """Write a private fact. Returns its id. `also_about`: more entity ids it is about, so one
+        fact is found from each of them (and a later correction replaces it everywhere at once). `from_messages` records which conversation
         messages it was taken from (evidence only: a wrong message can't exist, so it is not lineage).
         `source`: user (the user said it), web, document, or agent (the agent's own claim). Only
         non-user facts count toward the agent's accuracy."""
         if source not in FACT_SOURCES:
             raise MemoryGraphError(f"source must be one of {FACT_SOURCES}, not {source!r}")
         derived_from = list(dict.fromkeys(derived_from))
+        also_about = [e for e in dict.fromkeys(also_about) if e != entity]
         from_messages = self._require_messages(agent, from_messages)
         self._require_sources(agent, derived_from)
         fact_id = _new_id("fact")
@@ -198,17 +232,26 @@ class Memory:
             "id": fact_id, "text": text, "conf": confidence,
             "valid_from": valid_from if valid_from is not None else now, "now": now,
             "derived_from": derived_from, "from_messages": from_messages, "source": source,
+            "also_about": also_about,
         })
         if res.nodes_created == 0:
             raise MemoryGraphError(f"agent {agent!r} did not run session {session!r} (or one is unknown), "
                 f"or a source stopped being active while writing")
         return fact_id
 
-    def decide(self, agent, session, text, derived_from=()):
+    def decide(self, agent, session, text, derived_from=(), replaces=()):
         """Record a decision built on active items this agent may see. Returns its id. The decision
-        is private (only its owner's agents see it) if any source is private, else shared."""
+        is private (only its owner's agents see it) if any source is private, else shared.
+        `replaces`: flagged decisions of this user that the new one redoes; they become superseded,
+        so they leave the flagged list."""
         derived_from = list(dict.fromkeys(derived_from))
+        replaces = list(dict.fromkeys(replaces))
         self._require_sources(agent, derived_from)
+        if replaces:
+            found = {r[0] for r in self.g.query(queries.FLAGGED, {"me": agent}).result_set if r[6] == "Decision"}
+            bad = [d for d in replaces if d not in found]
+            if bad:
+                raise MemoryGraphError(f"can only replace flagged decisions of your user, not {bad}")
         decision_id = _new_id("dec")
         res = self.g.query(queries.DECIDE, {
             "agent": agent, "session": session, "id": decision_id, "text": text,
@@ -217,6 +260,8 @@ class Memory:
         if res.nodes_created == 0:
             raise MemoryGraphError(f"agent {agent!r} did not run session {session!r} (or one is unknown), "
                 f"or a source stopped being active while writing")
+        if replaces:
+            self.g.query(queries.REPLACE_DECISIONS, {"new": decision_id, "old": replaces, "me": agent})
         return decision_id
 
     def publish(self, agent, fact_id):
@@ -438,15 +483,18 @@ class Memory:
         rows = self.g.query(queries.INBOX, {"me": agent}).result_set
         return [{"id": r[0], "sender": r[1], "note": r[2], "at": r[3], "items": r[4]} for r in rows]
 
-    def supersede(self, agent, session, old_id, text, confidence=0.5, at=None):
+    def supersede(self, agent, session, old_id, text, confidence=0.5, at=None, derived_from=()):
         """The fact was true and then changed: replace it, keeping the old one as history.
 
         Only the author's owner can do this. Items built on the old fact are flagged "changed" so
         their owners can review (confirm) or redo them; the author's accuracy is untouched, since
         nothing was wrong. Returns {"superseded", "new", "flagged", "hidden_flagged", "agents"}.
+        `derived_from`: what the new version is built on (a redone draft on the new decision).
         """
+        derived_from = [d for d in dict.fromkeys(derived_from) if d != old_id]
         self._require_visible(agent, [old_id])
         self._require_may_change(agent, old_id)
+        self._require_sources(agent, derived_from)
         new_id = _new_id("fact")
         now = _now()
         res = self.g.query(queries.SUPERSEDE, {
@@ -456,6 +504,8 @@ class Memory:
         if not res.result_set:
             raise MemoryGraphError(
                 f"cannot supersede {old_id}: not an active fact, or {agent!r} did not run {session!r}")
+        if derived_from:
+            self.g.query(queries.LINK_SOURCES, {"id": new_id, "ids": derived_from})
         report = self._report(agent, old_id, res.result_set[0][2], "superseded")
         report["new"] = new_id
         return report
@@ -538,6 +588,7 @@ class Memory:
           user        the user said it: their word, not an agent's claim
           unverified  no evidence yet, and its author's accuracy is fine
           doubtful    a check contradicted it, or no evidence and its author's accuracy is low
+        When checks disagree, the latest one counts.
         needs_verification is true for doubtful facts. Nothing is hidden: facts come sorted by
         standing, then by the author's accuracy. Retracted and flagged facts are left out.
         as_of=None gives what is current now; a timestamp (ms) gives what was true then.
@@ -549,8 +600,11 @@ class Memory:
         rows = res.result_set
         records = self.records({r[3] for r in rows}) if rows else {}
         facts = []
-        for fid, text, built_on, author, source, supported, contradicted in rows:
+        for fid, text, built_on, author, source, supported_at, contradicted_at in rows:
             accuracy = records[author]["accuracy"]
+            # the latest check wins: a fact supported once and contradicted later is doubtful
+            supported = supported_at is not None and (contradicted_at is None or supported_at > contradicted_at)
+            contradicted = contradicted_at is not None and not supported
             if supported:
                 standing = "verified"
             elif source == "user" and not contradicted:
@@ -617,7 +671,55 @@ class Memory:
             "id": r[0], "text": r[1], "because": sorted(r[2] or []),
             "wrong": sorted(r[3]),
             "changed": [{"fact": c, "now": now_map.get(c)} for c in sorted(r[4])],
+            "author": r[5], "kind": r[6].lower(),
         } for r in rows]
+
+    # --- automatic upkeep: what an agent should look at without being asked ---
+
+    def similar_facts(self, agent, text, entities, limit=10):
+        """Active facts this agent may see that look like the same claim as `text`: about one of
+        `entities`, or anywhere with similar words (a copy under another entity). Each is
+        {"id", "text", "author", "yours"}; `yours` means the agent's user may change it."""
+        words = _content_words(text)
+        if not words:
+            return []
+        rows = self.g.query(queries.SIMILAR_BY_ENTITY, {"me": agent, "entities": list(entities)}).result_set
+        try:
+            rows += self.g.query(queries.SIMILAR_BY_TEXT, {
+                "me": agent, "q": "|".join(sorted(words)), "limit": int(limit)}).result_set
+        except ResponseError:
+            pass  # a word the index can't parse: the entity candidates are still checked
+        out, seen = [], set()
+        for fid, ftext, author, yours in rows:
+            if fid in seen:
+                continue
+            seen.add(fid)
+            other = _content_words(ftext)
+            shared = len(words & other)
+            if shared >= SIMILAR_MIN_WORDS and shared >= SIMILAR_MIN * min(len(words), len(other)):
+                out.append({"id": fid, "text": ftext, "author": author, "yours": bool(yours)})
+        return out[:limit]
+
+    def disputes(self, agent):
+        """Facts of this agent's user that another user's evidence contradicts (and no check has
+        supported since). Other users can't change them, so this is how they say so."""
+        rows = self.g.query(queries.DISPUTES, {"me": agent}).result_set
+        return [{"id": r[0], "text": r[1], "author": r[2], "by": r[3], "note": r[4],
+                 "sources": r[5], "at": r[6]} for r in rows]
+
+    def needs_attention(self, agent):
+        """Everything this agent's user's team should fix without being asked:
+        {"flagged": flagged(), "disputed": disputes()}."""
+        return {"flagged": self.flagged(agent), "disputed": self.disputes(agent)}
+
+    def fact_info(self, fact_id):
+        """{"visibility", "status", "source", "owner", "entities"} of a fact, or None."""
+        rows = self.g.query(queries.FACT_INFO, {"id": fact_id}).result_set
+        if not rows:
+            return None
+        visibility, status, source, owner, entities = rows[0]
+        return {"visibility": visibility, "status": status, "source": source, "owner": owner,
+                "entities": sorted(entities)}
 
 
 class Tenants:

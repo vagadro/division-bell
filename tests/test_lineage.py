@@ -113,8 +113,10 @@ def test_flagged_facts_leave_recall_and_show_up_for_their_owners(chain):
     mem.retract(c["r"], c["f1"])
     assert [f["id"] for f in mem.recall(c["w"], "org:acme")] == [c["f3"]]
     assert mem.flagged(c["p"]) == [
-        {"id": i, "text": t, "because": [c["f1"]], "wrong": [c["f1"]], "changed": []} for i, t in sorted(
-            [(c["d1"], "Pitch the enterprise plan"), (c["f2"], "Acme is an enterprise-size account")])]
+        {"id": i, "text": t, "because": [c["f1"]], "wrong": [c["f1"]], "changed": [],
+         "author": c["p"], "kind": k} for i, t, k in sorted(
+            [(c["d1"], "Pitch the enterprise plan", "decision"),
+             (c["f2"], "Acme is an enterprise-size account", "fact")])]
     assert [f["id"] for f in mem.flagged(c["w"])] == [c["d2"]]
     assert mem.flagged(c["r"]) == []  # retracted is not flagged
 
@@ -173,7 +175,7 @@ def test_two_retractions_both_recorded_on_a_shared_dependent(team):
     mem.retract(r, a)
     mem.retract(r, b)
     assert mem.flagged(p) == [{"id": d, "text": "built on both", "because": sorted([a, b]),
-                               "wrong": sorted([a, b]), "changed": []}]
+                               "wrong": sorted([a, b]), "changed": [], "author": p, "kind": "decision"}]
 
 
 def test_handoff_recipients_are_among_the_agents_to_notify(chain):

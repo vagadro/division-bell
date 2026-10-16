@@ -34,6 +34,20 @@ def test_the_caller_is_fixed_by_the_config_not_the_arguments(sam, priya):
     assert "error" in out
 
 
+def test_supersede_with_web_sources_keeps_the_new_value_verified(sam, priya):
+    old = sam.call("remember", {"text": "Acme has 500 employees", "entity": "org:acme", "source": "agent"})["id"]
+    sam.call("publish", {"item_id": old})
+    sam.web_urls = {"https://acme.example/about"}  # what this turn's web search returned
+    bad = sam.call("supersede", {"old_id": old, "text": "Acme has 600 employees",
+                                 "sources": ["https://made.up/page"]})
+    assert "error" in bad and [f["id"] for f in priya.call("recall", {"entity": "org:acme"})["facts"]] == [old]
+    out = sam.call("supersede", {"old_id": old, "text": "Acme has 600 employees",
+                                 "sources": ["https://acme.example/about", "https://made.up/page"]})
+    assert out["sources"] == ["https://acme.example/about"]
+    [fact] = priya.call("recall", {"entity": "org:acme"})["facts"]
+    assert fact["id"] == out["new"] and fact["standing"] == "verified"
+
+
 def test_lineage_through_the_tools(sam):
     f1 = sam.call("remember", {"text": "Acme has 500 employees", "entity": "org:acme"})["id"]
     sam.call("publish", {"item_id": f1})

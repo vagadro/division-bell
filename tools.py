@@ -26,7 +26,7 @@ TOOL_NAMES = (
     "remember", "recall", "publish", "supersede", "correct", "retract", "confirm",
     "decide", "explain", "blast_radius", "flagged",
     "handoff", "inbox", "learn_procedure", "recall_procedures", "verify_fact",
-    "save_web_fact", "read_document", "search_history",
+    "save_web_fact", "check_fact", "read_document", "search_history",
 )
 READ_DOC_CHARS = 12_000  # most document text one read_document call returns
 
@@ -34,12 +34,25 @@ Text = Annotated[str, Field(description="plain text")]
 FactId = Annotated[str, Field(description="id of a fact, like fact:3")]
 ItemId = Annotated[str, Field(description="id of a fact, decision or procedure")]
 Entity = Annotated[str, Field(description="stable id of the thing it is about, like org:acme")]
+AlsoAbout = Annotated[list[str], Field(description=(
+    "other entity ids the same fact is about, like [\"org:google\"] for a fact about the user's "
+    "job. One fact is found from each of them; never save a copy under another entity"))]
 Sources = Annotated[list[str], Field(description="ids of the shared facts/decisions this is built on")]
+DistinctFrom = Annotated[list[str], Field(description=(
+    "ids of similar saved facts you looked at and found to be about something else; "
+    "only after a save answered saved: false"))]
+SIMILAR_HINT = ("Not saved: similar facts exist. Read them. Same claim: don't save it again. Yours and "
+                "newer (it changed): supersede it. Yours and wrong: correct it. Another user's and "
+                "your search shows it is wrong or out of date: check_fact it as contradicted, then "
+                "save yours with distinct_from. A different claim: save again with distinct_from.")
 
 
 class AgentTools:
     def __init__(self, memory, agent, session, checker=None, docs_dir=None):
         self.memory, self.agent, self.session = memory, agent, session
+        self.owner = memory.owner_of(agent)
+        # facts about the user live under this entity and are never shared automatically
+        self.user_entity = self.owner if self.owner.startswith("user:") else None
         self.checker = checker      # built on first use, so no API key is needed until then
         self.docs_dir = Path(docs_dir).resolve() if docs_dir else None
         # Set by llm.chat_turn for the length of one user message, never by the model:
@@ -60,35 +73,89 @@ class AgentTools:
                  derived_from: Sources = (),
                  source: Annotated[str, Field(pattern="^(user|document|agent)$", description=(
                      "'user' if the user told you, 'document' if you read it in a document, "
-                     "'agent' if you worked it out yourself"))] = "user") -> dict:
+                     "'agent' if you worked it out yourself"))] = "user",
+                 also_about: AlsoAbout = (), distinct_from: DistinctFrom = ()) -> dict:
         """Write down a fact as a private note. Only you (and your user's other agents) see it
         until you publish it. If it relies on other facts, pass their ids in derived_from so a
         later correction can find it. Say honestly where it came from: if the user later
-        changes something they told you, that is not counted as your mistake."""
+        changes something they told you, that is not counted as your mistake. If a similar fact is
+        already saved, nothing is saved and the similar facts come back (saved: false)."""
+        similar = self._similar(text, [entity, *also_about], distinct_from)
+        if similar:
+            return similar
         fact = self.memory.remember(self.agent, self.session, text, entity, entity_name=entity_name,
                                     confidence=confidence, derived_from=list(derived_from),
                                     from_messages=[self.current_message] if self.current_message else (),
-                                    source=source)
+                                    source=source, also_about=list(also_about))
         return {"id": fact}
+
+    def _similar(self, text, entities, distinct_from):
+        """The not-saved answer if facts like this one exist (and were not ruled out), else None."""
+        found = [f for f in self.memory.similar_facts(self.agent, text, entities)
+                 if f["id"] not in set(distinct_from)]
+        return {"saved": False, "similar": found, "what_to_do": SIMILAR_HINT} if found else None
 
     def save_web_fact(self, text: Text, entity: Entity,
                       sources: Annotated[list[str], Field(
                           min_length=1, description="URLs from this turn's web search results")],
-                      entity_name: Annotated[str | None, Field(description="readable name of the entity")] = None) -> dict:
+                      entity_name: Annotated[str | None, Field(description="readable name of the entity")] = None,
+                      also_about: AlsoAbout = (), distinct_from: DistinctFrom = ()) -> dict:
         """Save a fact you just found with web_search. It is shared with the whole team at once and
         recorded as checked against those web pages. Cite only URLs the search returned; run
-        web_search first."""
+        web_search first. If a similar fact is already saved, nothing is saved and the similar
+        facts come back (saved: false)."""
         cited = list(dict.fromkeys(sources))
         found = [u for u in cited if u in self.web_urls]
         if not found:
             raise MemoryGraphError("none of these URLs came back from a web search in this turn; "
                                    "search first, then cite URLs from the results")
-        fact = self.remember(text, entity, entity_name=entity_name, confidence=0.9, source="web")["id"]
+        saved = self.remember(text, entity, entity_name=entity_name, confidence=0.9, source="web",
+                              also_about=also_about, distinct_from=distinct_from)
+        if "id" not in saved:
+            return saved
+        fact = saved["id"]
         # three steps, not one query: if one fails, the fact is still there as a private note
         self.memory.publish(self.agent, fact)
         self.memory.verify(self.agent, fact, "web", "supported", found)
         return {"id": fact, "shared": True, "sources": found,
                 "ignored": [u for u in cited if u not in found]}
+
+    def check_fact(self, fact_id: FactId,
+                   result: Annotated[str, Field(pattern="^(supported|contradicted)$", description=(
+                       "'supported' if the search results back the fact, 'contradicted' if they "
+                       "show it is wrong or out of date"))],
+                   sources: Annotated[list[str], Field(
+                       min_length=1, description="URLs from this turn's web_search results")],
+                   note: Annotated[str, Field(description=(
+                       "what the sources say, in one sentence (for contradicted: the right or newer value)"))] = "") -> dict:
+        """Record what your web_search showed about a saved fact (anyone's). Supported: the fact
+        counts as verified, and a private fact that is not about the user is then shared with the
+        team (it is public knowledge). Contradicted: the fact counts as doubtful for everyone; if
+        it is your user's, fix it now with supersede or correct; if it is another user's, its
+        owner's agents are told to look at it."""
+        cited = list(dict.fromkeys(sources))
+        found = [u for u in cited if u in self.web_urls]
+        if not found:
+            raise MemoryGraphError("none of these URLs came back from a web search in this turn; "
+                                   "search first, then cite URLs from the results")
+        self.memory.verify(self.agent, fact_id, "web", result, found, snippet=note)
+        info = self.memory.fact_info(fact_id)
+        mine = info["owner"] == self.owner
+        out = {"recorded": result, "fact": fact_id, "sources": found}
+        if result == "supported" and mine and info["visibility"] == "private":
+            if self.user_entity in info["entities"]:
+                out["shared"] = False  # about the user: stays private whatever the web says
+            else:
+                try:
+                    self.memory.publish(self.agent, fact_id)
+                    out["shared"] = True
+                except MemoryGraphError as e:  # built on private items: stays private
+                    out["shared"], out["why_not_shared"] = False, str(e)
+        elif result == "contradicted":
+            out["next"] = ("yours: fix it now with supersede (it changed) or correct (it was wrong)" if mine
+                           else "another user's: its owner's agents will see this; save your own value "
+                                "with save_web_fact and distinct_from")
+        return out
 
     def recall(self, entity: Entity,
                as_of: Annotated[int | None, Field(description="epoch ms; omit for what is true now")] = None) -> dict:
@@ -105,11 +172,25 @@ class AgentTools:
         return {"published": item_id}
 
     def supersede(self, old_id: FactId, text: Text,
-                  confidence: Annotated[float, Field(ge=0, le=1)] = 0.5) -> dict:
+                  confidence: Annotated[float, Field(ge=0, le=1)] = 0.5,
+                  sources: Annotated[list[str], Field(description=(
+                      "URLs from this turn's web_search that back the new value, if it came "
+                      "from the web; the new fact is then recorded as checked"))] = (),
+                  derived_from: Sources = ()) -> dict:
         """A fact was true and then CHANGED (not wrong). Replace it and keep the old one as history.
         Things built on it are flagged as 'changed' and can be confirmed. Only the author's user can.
         Returns the new fact's id as 'new', and what was flagged."""
-        return self.memory.supersede(self.agent, self.session, old_id, text, confidence=confidence)
+        cited = list(dict.fromkeys(sources))
+        found = [u for u in cited if u in self.web_urls]
+        if cited and not found:  # checked first, so a bad citation changes nothing
+            raise MemoryGraphError("none of these URLs came back from a web search in this turn; "
+                                   "search first, then cite URLs from the results")
+        report = self.memory.supersede(self.agent, self.session, old_id, text, confidence=confidence,
+                                       derived_from=list(derived_from))
+        if found:
+            self.memory.verify(self.agent, report["new"], "web", "supported", found)
+            report["sources"] = found
+        return report
 
     def correct(self, old_id: FactId, text: Text,
                 reason: Annotated[str, Field(description="why the old fact was wrong")] = "") -> dict:
@@ -133,10 +214,14 @@ class AgentTools:
 
     # --- lineage ---
 
-    def decide(self, text: Text, derived_from: Sources) -> dict:
+    def decide(self, text: Text, derived_from: Sources,
+               replaces: Annotated[list[str], Field(description=(
+                   "ids of flagged decisions this one redoes; they are closed as superseded"))] = ()) -> dict:
         """Record a decision built on facts or decisions, so it can be traced and flagged if one of
-        them turns out wrong. It stays private to your user if any source is private."""
-        return {"id": self.memory.decide(self.agent, self.session, text, derived_from=list(derived_from))}
+        them turns out wrong. It stays private to your user if any source is private. To redo a
+        flagged decision, pass it in replaces."""
+        return {"id": self.memory.decide(self.agent, self.session, text, derived_from=list(derived_from),
+                                         replaces=list(replaces))}
 
     def explain(self, item_id: ItemId) -> dict:
         """The chain of facts and agents behind an item, nearest first, with each link's status."""
