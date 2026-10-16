@@ -195,7 +195,7 @@ async function refreshPanels() {
   const row = (a) => el("li", { class: "agent-row" }, el("span", {}, `${a.name}`),
     el("span", { class: "trust" + (a.accuracy < 0.75 ? " low" : ""),
       title: `accuracy: ${a.mistakes} wrong of ${a.claims} claim(s) it made itself` },
-      (a.accuracy < 0.75 ? "⚠ " : "") + Math.round(a.accuracy * 100) + "%"));
+      accuracyLabel(a)));
   const ours = agents.agents.filter((a) => mine(a.id));
   const others = agents.agents.filter((a) => !mine(a.id));
   $("my-agents").replaceChildren(...ours.map(row));
@@ -256,7 +256,14 @@ async function drawGraph() {
 
 $("refresh-graph").addEventListener("click", drawGraph);
 
-// --- inspector: buttons are memory tools run as the user's own Researcher ---
+// No claims yet (Planner, Writer: decisions and drafts are never counted) means no score, not 100%.
+function accuracyLabel(a) {
+  if (!a.claims) return "no claims";
+  return (a.accuracy < 0.75 ? "⚠ " : "") + Math.round(a.accuracy * 100) + "%";
+}
+
+// --- inspector: read-only buttons, run as the user's own Researcher. Changes to memory are made
+// by the agents in the chat, never from here. ---
 
 async function tool(name, args) {
   return api("POST", `/api/tools/${name}`, { role: "researcher", chat: state.chat, args });
@@ -268,7 +275,7 @@ function inspect(node) {
   const lines = [el("h4", {}, `${node.label} ${node.id}`), el("div", {}, node.text || "")];
   if (node.status) lines.push(el("div", { class: "small muted" },
     `status: ${node.status} · ${node.visibility} · by ${node.author}${mine(node.author) ? " (yours)" : ""}`));
-  if (node.label === "Agent") lines.push(el("div", { class: "small muted" }, `owner ${node.owner} · accuracy ${Math.round((node.accuracy ?? 1) * 100)}% (${node.mistakes ?? 0} wrong of ${node.claims ?? 0} claims)`));
+  if (node.label === "Agent") lines.push(el("div", { class: "small muted" }, `owner ${node.owner} · accuracy ${accuracyLabel(node)} (${node.mistakes ?? 0} wrong of ${node.claims ?? 0} claims)`));
   const actions = el("div", { class: "actions" });
   const item = ["Fact", "Decision", "Procedure"].includes(node.label);
   if (item) {
@@ -276,15 +283,6 @@ function inspect(node) {
       el("button", { class: "ghost small", onclick: () => explain(node) }, "Explain"),
       el("button", { class: "ghost small", onclick: () => blast(node) }, "Blast radius"));
   }
-  if (item && mine(node.author) && node.visibility === "private" && node.status === "active")
-    actions.append(el("button", { class: "small", onclick: () => act("publish", { item_id: node.id }) }, "Publish"));
-  if (node.label === "Fact" && mine(node.author) && ["active", "flagged"].includes(node.status)) {
-    actions.append(
-      el("button", { class: "small", onclick: () => correct(node) }, "Correct…"),
-      el("button", { class: "danger small", onclick: () => retract(node) }, "Retract"));
-  }
-  if (item && mine(node.author) && node.status === "flagged")
-    actions.append(el("button", { class: "ghost small", onclick: () => act("confirm", { item_id: node.id }) }, "Confirm (still fine)"));
   box.replaceChildren(...lines, actions, el("div", { id: "inspect-out" }));
 }
 
@@ -314,30 +312,6 @@ function highlight(ids) {
   const set = new Set(ids);
   cy.nodes().filter((n) => set.has(n.id())).addClass("hit");
   cy.edges().filter((e) => e.data("type") === "DERIVED_FROM" && set.has(e.data("source")) && set.has(e.data("target"))).addClass("hit");
-}
-
-async function retract(node) {
-  const reason = prompt(`Retract "${short(node.text, 80)}"? It was WRONG and has no replacement.\nReason:`);
-  if (reason === null) return;
-  await act("retract", { fact_id: node.id, reason });
-}
-
-async function correct(node) {
-  const text = prompt(`The fact was WRONG. What is right?\n(was: ${node.text})`);
-  if (!text) return;
-  const reason = prompt("Why was it wrong?") || "";
-  await act("correct", { old_id: node.id, text, reason });
-}
-
-async function act(name, args) {
-  try {
-    const result = await tool(name, args);
-    await refreshPanels();
-    const flagged = result.flagged || [];          // ids of the downstream items this user may see
-    const hidden = result.hidden_flagged ? ` (+${result.hidden_flagged} private to other users)` : "";
-    out(el("p", { class: "small" }, `${name} done.` + (flagged.length || hidden ? ` Flagged ${flagged.length} item(s) downstream${hidden}.` : "")));
-    if (flagged.length) highlight(flagged);
-  } catch (err) { out(el("p", { class: "call err" }, err.message)); }
 }
 
 // --- start ---

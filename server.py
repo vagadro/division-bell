@@ -20,11 +20,14 @@ from pydantic import BaseModel, Field
 import llm
 from documents import DocumentError
 from memory import MemoryGraphError, Tenants
-from tools import TOOL_NAMES, AgentTools
+from tools import AgentTools
 
 ORGS = ("DemoOrg1", "DemoOrg2", "DemoOrg3")
 ROLES = ("researcher", "planner", "writer")
 STATIC = Path(__file__).resolve().parent / "static"
+# The page may only look: memory changes (publish, correct, retract, confirm...) are made by the
+# agents in the chat, never by a button, as they would be in a real organisation.
+READ_TOOLS = ("recall", "explain", "blast_radius", "flagged", "inbox", "search_history", "recall_procedures")
 NAME_RE = re.compile(r"[A-Za-z][A-Za-z0-9 ]{0,30}")
 
 
@@ -147,13 +150,14 @@ def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, do
 
     @app.post("/api/tools/{name}")
     def tool(name: str, body: ToolCall, x_user: str = Header(None), x_org: str = Header(None)):
-        """A button on the page (Retract, Correct, Confirm, Publish, Blast radius, Explain...).
-        It runs as one of the caller's own agents, so the same rules apply as for the model."""
+        """A read-only button on the page (Explain, Blast radius...). It runs as one of the caller's
+        own agents, so it sees what that agent may see. Tools that change memory are refused."""
         mem, _, agents = caller(x_user, x_org)
         if body.role not in agents:
             raise HTTPException(400, f"role must be one of {list(ROLES)}")
-        if name not in TOOL_NAMES:
-            raise HTTPException(404, f"unknown tool {name!r}")
+        if name not in READ_TOOLS:
+            raise HTTPException(403, f"{name!r} is not available on the page: the agents change "
+                                     f"memory themselves, from the chat")
         chat = body.chat or next((c["id"] for c in mem.chats(agents["researcher"])), None) \
             or mem.start_session(agents["researcher"], team=[agents["planner"], agents["writer"]])
         tools = guarded(lambda: team(mem, agents, chat))[body.role]

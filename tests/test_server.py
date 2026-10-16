@@ -58,28 +58,38 @@ def test_another_user_can_neither_read_nor_write_a_chat(tenants):
     assert api.post(f"/api/chats/{chat}/messages", json={"text": "hi"}, headers=ravi).status_code == 400
 
 
-def test_buttons_run_as_the_callers_own_agent(tenants):
+def seed(api, tenants, user="Deepak", org="DemoOrg1"):
+    """The user's memory and agents, to write test data the way the agents would (not the page)."""
+    agents = api.post("/api/enter", headers=who(user=user, org=org)).json()["agents"]
+    mem = tenants.get(org.lower())
+    return mem, agents, mem.start_session(agents["researcher"], team=[agents["planner"]])
+
+
+def test_the_page_can_only_read(tenants):
     api, _ = make(tenants)
-    fact = api.post("/api/tools/remember", headers=who(),
-                    json={"args": {"text": "Acme has 500 employees", "entity": "org:acme"}}).json()["id"]
-    api.post("/api/tools/publish", headers=who(), json={"args": {"item_id": fact}})
-    dec = api.post("/api/tools/decide", headers=who(), json={
-        "role": "planner", "args": {"text": "Pitch enterprise", "derived_from": [fact]}}).json()["id"]
+    mem, a, chat = seed(api, tenants)
+    fact = mem.remember(a["researcher"], chat, "Acme has 500 employees", "org:acme")
+    mem.publish(a["researcher"], fact)
+    dec = mem.decide(a["planner"], chat, "Pitch enterprise", derived_from=[fact])
     radius = api.post("/api/tools/blast_radius", headers=who(), json={"args": {"item_id": fact}}).json()
-    assert [a["id"] for a in radius["affected"]] == [dec]
-    # Ravi's button can't retract Deepak's fact: it runs as Ravi's agent
-    assert api.post("/api/tools/retract", headers=who(user="Ravi"), json={"args": {"fact_id": fact}}).status_code == 400
-    fixed = api.post("/api/tools/correct", headers=who(), json={
-        "args": {"old_id": fact, "text": "Acme has 50 employees", "reason": "HR page"}}).json()
-    assert dec in fixed["flagged"]
+    assert [x["id"] for x in radius["affected"]] == [dec]
+    chain = api.post("/api/tools/explain", headers=who(), json={"args": {"item_id": dec}}).json()["chain"]
+    assert [c["id"] for c in chain] == [dec, fact]
+    # nothing that changes memory can be sent from the page, not even by the fact's own user
+    for name, args in [("retract", {"fact_id": fact}), ("publish", {"item_id": fact}),
+                       ("correct", {"old_id": fact, "text": "Acme has 50 employees"}),
+                       ("remember", {"text": "x", "entity": "org:acme"}), ("confirm", {"item_id": dec})]:
+        assert api.post(f"/api/tools/{name}", headers=who(), json={"args": args}).status_code == 403
+    assert mem.recall(a["researcher"], "org:acme")[0]["id"] == fact      # unchanged
+    mem.correct(a["researcher"], chat, fact, "Acme has 50 employees")     # an agent can
     flagged = api.get("/api/flagged", headers=who()).json()["flagged"]
     assert [i["id"] for i in flagged["planner"]] == [dec]
-    assert len(api.get("/api/chats", headers=who()).json()["chats"]) == 1    # buttons reuse one chat
 
 
 def test_the_graph_view_is_filtered_per_user(tenants):
     api, _ = make(tenants)
-    api.post("/api/tools/remember", headers=who(), json={"args": {"text": "my salary is $20,000", "entity": "user:deepak"}})
+    mem, a, chat = seed(api, tenants)
+    mem.remember(a["researcher"], chat, "my salary is $20,000", "user:deepak")
     mine = {n["id"] for n in api.get("/api/graph", headers=who()).json()["nodes"]}
     ravis = api.get("/api/graph", headers=who(user="Ravi")).json()
     assert "user:deepak" in mine and "salary" not in str(ravis)
@@ -87,9 +97,8 @@ def test_the_graph_view_is_filtered_per_user(tenants):
 
 def test_orgs_are_separate_graphs(tenants):
     api, _ = make(tenants)
-    api.post("/api/tools/remember", headers=who(), json={"args": {"text": "x", "entity": "org:acme"}})
-    api.post("/api/tools/publish", headers=who(), json={"args": {"item_id": api.get(
-        "/api/graph", headers=who()).json()["nodes"][0]["id"]}})
+    mem, a, chat = seed(api, tenants)
+    mem.publish(a["researcher"], mem.remember(a["researcher"], chat, "x", "org:acme"))
     other_org = api.get("/api/graph", headers=who(user="Ravi", org="DemoOrg2")).json()
     assert other_org["nodes"] == []
 

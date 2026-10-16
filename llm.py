@@ -208,8 +208,8 @@ Rules for every agent:
 - If a tool returns an error, read it and fix the call, or tell the user what went wrong.
 - A handoff to a teammate starts that teammate at once, with your note as its task. Hand off
   only when the teammate has work to do; otherwise your reply goes to the user.
-- Upkeep is automatic: nobody will ask you to fix memory. If the system prompt lists "Needs
-  attention", handle the items that are yours as part of this turn, then answer the user:
+- Upkeep is automatic: nobody will ask you to fix memory. If a message starts with "[Needs
+  attention", handle the items that are yours first, whatever the message is (even "hi"):
   * flagged, source changed: compare with the new fact; confirm it if it still holds, else redo it.
   * flagged, source wrong: redo it on the corrected facts (decide with replaces, or supersede
     the flagged fact).
@@ -232,6 +232,8 @@ You are the Researcher, and you lead: every user message comes to you first.
 - If recall returns an active fact that answers the question and its standing is "verified" or
   "user", answer from it and do NOT call web_search, even if another user saved it. Search only
   if no saved fact answers it, the fact needs verification, or the user asks for fresh information.
+- If the best saved fact is only "unverified" or "doubtful", web_search it before answering and
+  record what you found with check_fact (supported or contradicted), then answer from the evidence.
 - After a web_search, save what you found with save_web_fact,
   citing only URLs from the search results. Then answer with the source.
 - If remember or save_web_fact answers saved: false, it found similar saved facts. Follow its
@@ -256,7 +258,7 @@ You are the Researcher, and you lead: every user message comes to you first.
   headcount, a new address), supersede that fact with the new value and its sources if it is
   your user's; if it is another user's, check_fact it as contradicted (note the new value), then
   save yours with save_web_fact and distinct_from. Never leave two values active that you could fix.
-- Greetings, arithmetic and rewording need no lookup.
+- Greetings, arithmetic and rewording need no lookup (but handle "Needs attention" first).
 - If the user wants a plan, a decision or a written draft, do the research part, then hand off
   to the Planner with the fact ids and a note saying what is needed.""",
 
@@ -273,7 +275,8 @@ You are the Planner. Work reaches you as a handoff note with item ids.
 
 You are the Writer. Work reaches you as a handoff note with item ids.
 - Write the draft the note asks for, using only the facts and decisions you were handed or can
-  recall. Save the draft with remember (entity doc:<topic>), derived_from the decision ids.
+  recall. Save the draft with remember (entity doc:<topic>, source "agent"), derived_from the
+  decision ids.
 - Answer with the draft.
 - If a draft of yours was flagged, rewrite only that draft: supersede the flagged draft fact with
   the new text and derived_from=[the new decision id].""",
@@ -334,7 +337,10 @@ def chat_turn(tools, role, user_text, client=None, spend=None, owner=None,
         message_id = memory.add_message(tools.agent, tools.session, "user", user_text)
     tools.current_message = message_id
     tools.web_urls = set()
-    conversation.append({"role": "user", "content": user_text})
+    # upkeep goes in front of this message (not in the system prompt, where a model may skip it for
+    # a "hi"); only the API request carries it, the saved chat keeps the user's own words
+    todo = _attention(memory, tools.agent)
+    conversation.append({"role": "user", "content": f"{todo}\n\n[Message]\n{user_text}" if todo else user_text})
 
     api_tools = tools.anthropic_tools()
     if role == "researcher":  # first, so the cache marker on the last custom tool covers it too
@@ -343,7 +349,7 @@ def chat_turn(tools, role, user_text, client=None, spend=None, owner=None,
     system = [
         {"type": "text", "text": ROLE_PROMPTS[role], "cache_control": {"type": "ephemeral"}},
         # changes per user, so it goes after the cached part
-        {"type": "text", "text": _who(tools, owner) + _attention(memory, tools.agent)},
+        {"type": "text", "text": _who(tools, owner)},
     ]
 
     calls, reply, stop = [], "", "round_cap"
@@ -481,7 +487,10 @@ def _attention(memory, agent):
     for d in todo["disputed"][:ATTENTION_ITEMS]:
         lines.append(f"- disputed fact {d['id']} by {d['author']}: \"{d['text']}\" "
                      f"({d['by']} found: {d['note'] or 'contradicted'}; sources: {', '.join(d['sources'])})")
-    return "\n\nNeeds attention (your user's team):\n" + "\n".join(lines) if lines else ""
+    if not lines:
+        return ""
+    return ("[Needs attention: from the memory system, not from the user. Handle the items that are "
+            "yours first, with tools, then reply to the message below.]\n" + "\n".join(lines))
 
 
 def _role_of(agent):

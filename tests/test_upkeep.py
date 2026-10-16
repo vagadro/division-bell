@@ -136,3 +136,17 @@ def test_a_redone_draft_keeps_its_lineage(mem):
     new = w.call("supersede", {"old_id": draft, "text": "Dear team, we fly to Austin in May",
                                "derived_from": [d2]})["new"]
     assert [x["id"] for x in mem.explain(w.agent, new)] == [new, d2, fact]
+
+
+def test_needs_attention_goes_in_front_of_the_message_but_is_not_saved(deepak, priya):
+    from llm import MockLLM, chat_turn
+    f = deepak.call("save_web_fact", {"text": "Infosys was founded in 1991", "entity": "org:infosys",
+                                      "sources": [URL]})["id"]
+    priya.call("check_fact", {"fact_id": f, "result": "contradicted", "sources": [URL], "note": "1981"})
+    client = MockLLM([MockLLM.reply("Hi!")])
+    chat_turn(deepak, "researcher", "hi", client=client, owner="Deepak")
+    sent = client.requests[0]["messages"][-1]["content"]
+    assert sent.startswith("[Needs attention") and f"disputed fact {f}" in sent and sent.endswith("[Message]\nhi")
+    assert "Needs attention" not in client.requests[0]["system"][1]["text"]
+    saved = [m["text"] for m in deepak.memory.history(deepak.agent, deepak.session) if m["role"] == "user"]
+    assert saved == ["hi"]                       # the chat keeps the user's own words

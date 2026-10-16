@@ -20,4 +20,3 @@ TODO*.md
 .env.*
 GraphHacks_Project_Guide.docx
 ~$*.docx
-scripts/demo.py
