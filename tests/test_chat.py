@@ -176,7 +176,7 @@ def test_facts_carry_their_source(deepak):
 
 # --- what the agent did is recorded for the page, not said in the reply ---
 
-def test_what_the_agent_did_is_recorded_and_never_replayed(deepak):
+def test_what_the_agent_did_is_recorded_and_replayed_as_one_line(deepak):
     import json
     script = [MockLLM.tool_call("remember", {"text": "Deepak works at Apple", "entity": "user:deepak"}),
               MockLLM.reply("Nice to meet you, Deepak!")]
@@ -190,7 +190,10 @@ def test_what_the_agent_did_is_recorded_and_never_replayed(deepak):
     assert '"id": "fact:' in call["result"]
     _, client = turn(deepak, [MockLLM.reply("ok")], text="again")
     sent = [m["content"] for m in client.requests[0]["messages"]]
-    assert sent == ["I work at Apple", "Nice to meet you, Deepak!", "again"]  # the record is not sent
+    fact = json.loads(call["result"])["id"]
+    # not the raw record: one line saying what really happened, so the agent never doubts it
+    assert sent == ["I work at Apple",
+                    f'Nice to meet you, Deepak!\n(actions: remember "Deepak works at Apple" -> {fact})', "again"]
     other = deepak.memory.start_session(deepak.agent)
     found = deepak.memory.search_history(deepak.agent, "apple", exclude_session=other)
     assert {m["role"] for m in found} == {"user"}                         # nor found by search

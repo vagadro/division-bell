@@ -201,6 +201,8 @@ things up when a question needs them, and never guess.
 
 Rules for every agent:
 - Ids (fact:..., decision:..., agent:...) come only from tool results. Never invent one.
+- Earlier replies in the chat may end with an "(actions: ...)" line: the app's record of what
+  that agent really did (saved, superseded, handed off...). Trust it, and never write one yourself.
 - When something is built on other items, pass their ids in derived_from, so a later correction
   can find everything that depended on them.
 - Entities have stable ids: user:<name> for the user, person:<name>, org:<name>, country:<name>,
@@ -458,18 +460,68 @@ def _next_handoff(tool_calls, roles, me):
 def _as_api_messages(history, me):
     """Saved messages -> API conversation, as `me` sees it. A chat is shared by the user's agents,
     so a teammate's reply is labelled with its role ("[planner] ..."); this agent's own replies
-    are not. Tool messages are internal and not replayed."""
+    are not. Tool messages are not replayed as such, but what an agent changed in memory is added
+    to its reply as one "(actions: ...)" line, so it can see what it really did earlier."""
+    actions = {}  # index of an agent reply -> the summary of that agent's turn
+    last_reply = {}
+    for i, m in enumerate(history):
+        if m["role"] == "agent":
+            last_reply[m["agent"]] = i
+        elif m["role"] == "tool" and m["agent"] in last_reply:
+            summary = _actions_line(m["text"])
+            if summary:
+                actions[last_reply.pop(m["agent"])] = summary
     out = []
-    for m in history:
+    for i, m in enumerate(history):
         if not m["text"] or m["role"] not in ("user", "agent"):
             continue
         if m["role"] == "user":
             out.append({"role": "user", "content": m["text"]})
-        elif m["agent"] in (None, me):
-            out.append({"role": "assistant", "content": m["text"]})
-        else:
-            out.append({"role": "assistant", "content": f"[{_role_of(m['agent'])}] {m['text']}"})
+            continue
+        text = m["text"] + (f"\n{actions[i]}" if i in actions else "")
+        if m["agent"] not in (None, me):
+            text = f"[{_role_of(m['agent'])}] {text}"
+        out.append({"role": "assistant", "content": text})
     return out
+
+
+# tools that change memory or hand work on: the ones worth replaying (reads like recall are not)
+WRITE_TOOLS = {"remember": "text", "save_web_fact": "text", "decide": "text", "learn_procedure": "name",
+               "supersede": "old_id", "correct": "old_id", "retract": "fact_id", "check_fact": "fact_id",
+               "verify_fact": "fact_id", "publish": "item_id", "confirm": "item_id", "handoff": "recipient"}
+ITEM_ID = re.compile(r"\b(?:fact|dec|handoff|proc):[0-9a-f]+")
+
+
+def _actions_line(record):
+    """One line from a turn's tool record: what the agent changed, e.g. '(actions: remember
+    "Deepak works at…" -> fact:ab12; supersede fact:ab12 -> fact:cd34)'. Empty if nothing changed."""
+    try:
+        data = json.loads(record)
+    except (TypeError, ValueError):
+        return ""
+    parts = []
+    for call in data.get("calls", []):
+        key = WRITE_TOOLS.get(call.get("tool"))
+        if key is None:
+            continue
+        args = call.get("args") or {}
+        what = str(args.get(key, ""))
+        if key in ("text", "name"):
+            what = f'"{what[:40]}…"' if len(what) > 40 else f'"{what}"'
+        if call["tool"] == "check_fact":
+            what += f" {args.get('result', '')}"
+        result = call.get("result") or ""
+        if not call.get("ok", True):
+            outcome = "failed"
+        elif '"saved": false' in result:
+            outcome = "not saved: a similar fact exists"
+        else:
+            found = [i for i in ITEM_ID.findall(result) if i not in what]
+            outcome = found[0] if found else "done"
+        parts.append(f"{call['tool']} {what} -> {outcome}")
+    if data.get("web_search"):
+        parts.insert(0, "web_search")
+    return f"(actions: {'; '.join(parts)})" if parts else ""
 
 
 ATTENTION_ITEMS = 8  # most flagged or disputed items shown per turn

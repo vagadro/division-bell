@@ -150,3 +150,24 @@ def test_needs_attention_goes_in_front_of_the_message_but_is_not_saved(deepak, p
     assert "Needs attention" not in client.requests[0]["system"][1]["text"]
     saved = [m["text"] for m in deepak.memory.history(deepak.agent, deepak.session) if m["role"] == "user"]
     assert saved == ["hi"]                       # the chat keeps the user's own words
+
+
+def test_the_actions_line_lists_changes_and_failures_not_reads():
+    import json
+    from llm import _actions_line
+    record = json.dumps({"stop": "end_turn", "web_search": True, "calls": [
+        {"tool": "recall", "args": {"entity": "org:acme"}, "result": '{"facts": []}', "ok": True},
+        {"tool": "remember", "args": {"text": "x" * 60, "entity": "org:acme"},
+         "result": '{"saved": false, "similar": [{"id": "fact:aa"}]}', "ok": True},
+        {"tool": "supersede", "args": {"old_id": "fact:aa", "text": "y"},
+         "result": '{"superseded": "fact:aa", "new": "fact:bb"}', "ok": True},
+        {"tool": "check_fact", "args": {"fact_id": "fact:cc", "result": "contradicted", "sources": ["u"]},
+         "result": '{"error": "none of these URLs"}', "ok": False},
+        {"tool": "handoff", "args": {"recipient": "agent:deepak-planner", "item_ids": ["fact:bb"]},
+         "result": '{"handoff": "handoff:dd"}', "ok": True}]})
+    assert _actions_line(record) == (
+        '(actions: web_search; remember "' + "x" * 40 + '…" -> not saved: a similar fact exists; '
+        "supersede fact:aa -> fact:bb; check_fact fact:cc contradicted -> failed; "
+        "handoff agent:deepak-planner -> handoff:dd)")
+    assert _actions_line(json.dumps({"calls": [{"tool": "recall", "args": {}, "result": "{}"}]})) == ""
+    assert _actions_line("not json") == ""
