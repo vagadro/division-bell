@@ -54,7 +54,7 @@ def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, do
         raise ValueError(f"MEMORY_LLM must be 'mock' or 'haiku', not {mode!r}")
     state = {"tenants": tenants, "client": client, "spend": llm.Spend(cap=spend_cap), "spends": {}}
     docs_dir = docs_dir or os.environ.get("MEMORY_DOCS_DIR")
-    app = FastAPI(title="GraphHacks shared agent memory")
+    app = FastAPI(title="Division Bell")
 
     def tenants_():
         if state["tenants"] is None:
