@@ -5,13 +5,19 @@ Who is calling comes from two headers, X-User (a name) and X-Org (DemoOrg1-3). N
 authenticated: anyone who sends the same name and org is that user. The server binds to
 127.0.0.1 only. Each user gets three agents (Researcher, Planner, Writer) on first visit.
 
-Mode: MEMORY_LLM=mock (default, EchoLLM, $0) or MEMORY_LLM=haiku (the real API, spend-capped).
+Mode: MEMORY_LLM=haiku (default): the real agents, spend-capped. Whoever uses the page pastes
+their own Anthropic API key; the page sends it in the X-Api-Key header with each message. The
+server builds a client for that request only and never stores or logs the key. An
+ANTHROPIC_API_KEY in the environment is an optional fallback for requests that send none.
+MEMORY_LLM=mock is a scripted stand-in that exists for the tests only.
 Run (from backend/): uv run uvicorn server:app --host 127.0.0.1 --port 8000
 """
+import hashlib
 import os
 import re
 from pathlib import Path
 
+import anthropic
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -43,10 +49,10 @@ class ToolCall(BaseModel):
 
 def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, docs_dir=None):
     """Build the app. Tests pass their own tenants (a test prefix) and a scripted client."""
-    mode = mode or os.environ.get("MEMORY_LLM", "mock")
+    mode = mode or os.environ.get("MEMORY_LLM", "haiku")
     if mode not in ("mock", "haiku"):
         raise ValueError(f"MEMORY_LLM must be 'mock' or 'haiku', not {mode!r}")
-    state = {"tenants": tenants, "client": client, "spend": llm.Spend(cap=spend_cap)}
+    state = {"tenants": tenants, "client": client, "spend": llm.Spend(cap=spend_cap), "spends": {}}
     docs_dir = docs_dir or os.environ.get("MEMORY_DOCS_DIR")
     app = FastAPI(title="GraphHacks shared agent memory")
 
@@ -55,14 +61,31 @@ def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, do
             state["tenants"] = Tenants()
         return state["tenants"]
 
-    def llm_client():
-        if state["client"] is None:
-            if mode == "mock":
+    def key_for(header_key):
+        """The Anthropic key a request uses: the one the page sent, else the server's own, else None."""
+        return (header_key or "").strip() or os.environ.get("ANTHROPIC_API_KEY") or None
+
+    def scripted():
+        """True when a test injected a client or the mock mode is on: no real key is involved."""
+        return state["client"] is not None or mode == "mock"
+
+    def spend_for(key):
+        """The spend counter for a key, found by a hash of it so the key itself is not kept."""
+        if scripted():
+            return state["spend"]
+        tag = hashlib.sha256((key or "").encode()).hexdigest()[:16]
+        return state["spends"].setdefault(tag, llm.Spend(cap=spend_cap))
+
+    def client_for(header_key):
+        """A client for this request. Without any key the page is told to ask for one."""
+        if scripted():
+            if state["client"] is None:
                 state["client"] = llm.EchoLLM()
-            else:
-                import anthropic
-                state["client"] = anthropic.Anthropic()
-        return state["client"]
+            return state["client"]
+        key = key_for(header_key)
+        if not key:
+            raise HTTPException(401, "Add your Anthropic API key (bottom left of the page) to talk to the agents.")
+        return anthropic.Anthropic(api_key=key)
 
     def caller(user, org):
         """(memory, owner name, {role: agent id}) for the request's headers. Creates the agents."""
@@ -88,6 +111,16 @@ def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, do
             raise HTTPException(400, str(e))
         except llm.LLMBudgetError as e:
             raise HTTPException(429, str(e))
+        except anthropic.AuthenticationError:
+            raise HTTPException(401, "Anthropic rejected this API key. Check it and paste it again.")
+        except anthropic.PermissionDeniedError:
+            raise HTTPException(403, "This API key is not allowed to use the model.")
+        except anthropic.RateLimitError:
+            raise HTTPException(429, "Anthropic is rate limiting this key. Wait a moment and try again.")
+        except anthropic.APIConnectionError:
+            raise HTTPException(502, "Could not reach the Anthropic API.")
+        except anthropic.APIStatusError as e:
+            raise HTTPException(502, f"The Anthropic API returned an error ({e.status_code}).")
 
     # Who am I
 
@@ -102,9 +135,20 @@ def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, do
         return {"user": owner, "org": x_org, "agents": agents, "chats": mem.chats(agents["researcher"])}
 
     @app.get("/api/status")
-    def status():
-        s = state["spend"]
-        return {"mode": mode, "spend": round(s.total, 6), "cap": s.cap, "calls": s.calls}
+    def status(x_api_key: str = Header(None)):
+        """Spend is counted per API key. `server_key` tells the page whether the server has its
+        own key, so it knows whether to ask the visitor for one."""
+        s = spend_for(key_for(x_api_key))
+        return {"mode": mode, "spend": round(s.total, 6), "cap": s.cap, "calls": s.calls,
+                "server_key": bool(os.environ.get("ANTHROPIC_API_KEY")) or scripted()}
+
+    @app.post("/api/key/check")
+    def key_check(x_api_key: str = Header(None)):
+        """Does Anthropic accept this key? Uses the free model-list call, so it costs nothing."""
+        client = client_for(x_api_key)
+        if not scripted():
+            guarded(lambda: client.models.list(limit=1))
+        return {"ok": True}
 
     # Chats
 
@@ -125,11 +169,13 @@ def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, do
         return guarded(lambda: {"id": chat, "messages": mem.history(agents["researcher"], chat)})
 
     @app.post("/api/chats/{chat}/messages")
-    def send(chat: str, body: Text, x_user: str = Header(None), x_org: str = Header(None)):
+    def send(chat: str, body: Text, x_user: str = Header(None), x_org: str = Header(None),
+             x_api_key: str = Header(None)):
         """One user message through the team. Returns the reply and every agent's steps."""
         mem, owner, agents = caller(x_user, x_org)
-        return guarded(lambda: llm.team_turn(team(mem, agents, chat), body.text, client=llm_client(),
-                                             spend=state["spend"], owner=owner))
+        client = client_for(x_api_key)
+        return guarded(lambda: llm.team_turn(team(mem, agents, chat), body.text, client=client,
+                                             spend=spend_for(key_for(x_api_key)), owner=owner))
 
     # The panels
 

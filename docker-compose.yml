@@ -1,0 +1,44 @@
+# Starts FalkorDB and the app together:  docker compose up --build
+# The page is then at http://localhost:8000 and the FalkorDB Browser at http://localhost:3000.
+#
+# Settings come from the environment or from a .env file next to this one, and all have local
+# defaults. The agents call the Anthropic API with the key the visitor pastes into the page
+# (bottom left). ANTHROPIC_API_KEY here is an optional fallback for requests that send none.
+
+services:
+  falkordb:
+    # Pinned to the image the project was built and tested against.
+    image: falkordb/falkordb:latest@sha256:b0bdcac2cbaff989e77cb0610439b7a9289e86de033ccbbd4368b66fb680ae7a
+    environment:
+      # Turns off the open default user and creates one named user that the app logs in as.
+      REDIS_ARGS: "--user default off --user ${FALKORDB_USERNAME:-graphhacks} on >${FALKORDB_PASSWORD:-local-demo-password} allkeys allchannels allcommands"
+    ports:
+      # Bound to this machine only.
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - falkordb_data:/var/lib/falkordb/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning --user ${FALKORDB_USERNAME:-graphhacks} --pass ${FALKORDB_PASSWORD:-local-demo-password} ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  app:
+    build: .
+    depends_on:
+      falkordb:
+        condition: service_healthy
+    environment:
+      # Inside the compose network the database is reached by its service name.
+      FALKORDB_HOST: falkordb
+      FALKORDB_PORT: "6379"
+      FALKORDB_USERNAME: ${FALKORDB_USERNAME:-graphhacks}
+      FALKORDB_PASSWORD: ${FALKORDB_PASSWORD:-local-demo-password}
+      MEMORY_LLM: ${MEMORY_LLM:-haiku}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "127.0.0.1:8000:8000"
+
+volumes:
+  falkordb_data:

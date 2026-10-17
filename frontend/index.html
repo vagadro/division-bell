@@ -36,13 +36,27 @@
       <ul id="chats" class="list"></ul>
       <h3>Flagged <span id="flag-count" class="pill warn hidden"></span></h3>
       <ul id="flagged" class="list"></ul>
+
+      <!-- the visitor's own Anthropic API key -->
+      <div id="keybox">
+        <h3>Anthropic API key</h3>
+        <form id="key-form">
+          <input id="key-input" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+          <div class="row">
+            <button type="submit" class="small">Save</button>
+            <button type="button" id="key-clear" class="link small hidden">Clear</button>
+          </div>
+        </form>
+        <p id="key-status" class="small muted"></p>
+        <p class="small muted">Kept in this browser tab only and sent to this server with each message. The server does not store it.</p>
+      </div>
     </aside>
 
     <!-- middle: the chat -->
     <section id="middle">
       <div id="messages"><p class="muted center">Start a new chat, or open one on the left.</p></div>
       <form id="send-form">
-        <textarea id="input" rows="2" placeholder="Ask your team anything…" disabled></textarea>
+        <textarea id="input" rows="2" placeholder="Ask your agents anything…" disabled></textarea>
         <button id="send" type="submit" disabled>Send</button>
       </form>
     </section>

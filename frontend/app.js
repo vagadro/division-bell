@@ -2,18 +2,26 @@
 // so the page can't bypass any memory rule. No framework: plain DOM + Cytoscape for the graph.
 
 const $ = (id) => document.getElementById(id);
-const state = { user: null, org: null, agents: {}, chat: null, cy: null, busy: false };
+const state = { user: null, org: null, agents: {}, chat: null, cy: null, busy: false, key: null, serverKey: false };
 
 // Small helpers
 function saveLocal(key, value) {          // per-browser convenience only; the page works without it
   try { value === undefined ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch (e) {}
 }
 function recallLocal(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+// The API key is kept in this tab only (sessionStorage) and is gone when the tab closes.
+function saveSession(key, value) {
+  try { value === undefined ? sessionStorage.removeItem(key) : sessionStorage.setItem(key, value); } catch (e) {}
+}
+function recallSession(key) { try { return sessionStorage.getItem(key); } catch (e) { return null; } }
+state.key = recallSession("apikey");
 
 async function api(method, path, body) {
+  const headers = { "Content-Type": "application/json", "X-User": state.user || "", "X-Org": state.org || "" };
+  if (state.key) headers["X-Api-Key"] = state.key;
   const res = await fetch(path, {
     method,
-    headers: { "Content-Type": "application/json", "X-User": state.user || "", "X-Org": state.org || "" },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
@@ -97,7 +105,7 @@ async function openChat(chat) {
   saveLocal(`chat:${state.org}:${state.user}`, chat);
   const { messages } = await api("GET", `/api/chats/${chat}`);
   $("messages").replaceChildren(...renderChat(messages));
-  if (!messages.length) $("messages").append(el("p", { class: "muted center" }, "Ask your team anything. The Researcher answers first and passes work on when needed."));
+  if (!messages.length) $("messages").append(el("p", { class: "muted center" }, "Ask your agents anything. The Researcher answers first and passes work on when needed."));
   await renderChats();
   scrollDown();
   $("input").focus();
@@ -155,11 +163,16 @@ $("send-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = $("input").value.trim();
   if (!text || state.busy || !state.chat) return;
+  if (!state.key && !state.serverKey) {
+    renderKey("Paste your Anthropic API key here first.", true);
+    $("key-input").focus();
+    return;
+  }
   state.busy = true; $("send").disabled = true; $("input").value = "";
   const empty = $("messages").querySelector(".center");
   if (empty) empty.remove();
   $("messages").append(el("div", { class: "msg user" }, text));
-  const pending = el("div", { class: "msg agent pending" }, "The team is working…");
+  const pending = el("div", { class: "msg agent pending" }, "The agents are working…");
   $("messages").append(pending); scrollDown();
   try {
     const out = await api("POST", `/api/chats/${state.chat}/messages`, { text });
@@ -168,6 +181,7 @@ $("send-form").addEventListener("submit", async (e) => {
     if (out.stop !== "done") $("messages").append(el("p", { class: "small muted" }, `(stopped: ${out.stop})`));
   } catch (err) {
     pending.textContent = "Error: " + err.message;
+    if (/API key/i.test(err.message)) renderKey(err.message, true);
   } finally {
     state.busy = false; $("send").disabled = false;
     scrollDown();
@@ -193,6 +207,7 @@ async function refreshPanels() {
   $("flag-count").textContent = items.length;
   $("flag-count").classList.toggle("hidden", !items.length);
   $("status").textContent = `${status.mode} · $${status.spend.toFixed(4)} / $${status.cap.toFixed(2)}`;
+  if (state.serverKey !== status.server_key) { state.serverKey = status.server_key; renderKey(); }
   await drawGraph();
 }
 
@@ -314,7 +329,46 @@ function highlight(ids) {
   cy.edges().filter((e) => e.data("type") === "DERIVED_FROM" && set.has(e.data("source")) && set.has(e.data("target"))).addClass("hit");
 }
 
+// API key box (bottom left)
+function renderKey(message, bad) {
+  const status = $("key-status");
+  $("keybox").classList.toggle("need", !state.key && !state.serverKey);
+  if (message) status.textContent = message;
+  else if (state.key) status.textContent = `Key saved for this tab (ends ${state.key.slice(-4)}).`;
+  else if (state.serverKey) status.textContent = "This server has its own key. Paste yours to use it instead.";
+  else status.textContent = "Paste your Anthropic API key to start.";
+  status.classList.toggle("bad", !!bad);
+  $("key-clear").classList.toggle("hidden", !state.key);
+}
+
+$("key-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const candidate = $("key-input").value.trim();
+  if (!candidate) return;
+  const previous = state.key;
+  state.key = candidate;
+  renderKey("Checking with Anthropic...");
+  try {
+    await api("POST", "/api/key/check");
+    saveSession("apikey", candidate);
+    $("key-input").value = "";
+    renderKey();
+    if (state.user) await refreshPanels();
+  } catch (err) {
+    state.key = previous;
+    renderKey(err.message, true);
+  }
+});
+
+$("key-clear").addEventListener("click", async () => {
+  state.key = null;
+  saveSession("apikey", undefined);
+  renderKey();
+  if (state.user) await refreshPanels();
+});
+
 // Start
+renderKey();
 state.user = recallLocal("user");
 state.org = recallLocal("org");
 (state.user && state.org ? enter().catch(showEntry) : showEntry());

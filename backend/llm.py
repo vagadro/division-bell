@@ -614,7 +614,7 @@ class MockLLM:
 
 
 class EchoLLM:
-    """A $0 stand-in for clicking through the UI without an API key. It reacts to what was typed:
+    """A $0 stand-in used by the tests (MEMORY_LLM=mock); it is not a product mode. It reacts to what was typed:
     "remember <text>" saves <text> as a fact about topic:notes; anything else is echoed back.
     No reasoning, no web search, no handoffs: it only shows that the plumbing works."""
 

@@ -29,9 +29,16 @@ main.graph-closed { grid-template-columns: 220px minmax(360px, 1fr) 36px; }
 }
 
 aside, section { min-height: 0; }
-#left { padding: 12px; border-right: 1px solid var(--line); background: var(--panel); overflow-y: auto; }
+#left { padding: 12px; border-right: 1px solid var(--line); background: var(--panel); overflow-y: auto; display: flex; flex-direction: column; }
 #left h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 18px 0 6px; }
 #new-chat { width: 100%; }
+#keybox { margin-top: auto; position: sticky; bottom: -12px; padding: 4px 8px 8px; background: var(--panel); border-top: 1px solid var(--line); border-radius: 8px; }
+#keybox h3 { margin: 10px 0 6px; }
+#keybox p { margin: 6px 0 0; }
+#keybox.need { outline: 2px solid var(--warn); }
+#key-input { width: 100%; box-sizing: border-box; padding: 6px 8px; font: inherit; border: 1px solid var(--line); border-radius: 6px; }
+#keybox .row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+#key-status.bad { color: var(--flagged); }
 .list { list-style: none; margin: 0; padding: 0; }
 .list li { padding: 6px 8px; border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #chats li { cursor: pointer; }

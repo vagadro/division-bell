@@ -1,0 +1,19 @@
+# Keeps the build context small and keeps secrets and local files out of the image.
+.git
+.venv
+.env
+.env.*
+.claude
+CLAUDE.md
+**/CLAUDE.md
+notes
+private
+docs
+**/__pycache__
+**/*.pyc
+*.docx
+
+# Not needed to run the app.
+backend/tests
+backend/scripts
+backend/eval
