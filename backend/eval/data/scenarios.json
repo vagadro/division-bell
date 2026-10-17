@@ -1,0 +1,2437 @@
+{
+ "scenarios": [
+  {
+   "id": "clinic",
+   "domain": "healthcare operations",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "demand",
+     "sources": [],
+     "text": "Walk-in evening peak: avg wait about 75 min (front-desk logs, last quarter)."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "demand",
+     "sources": [],
+     "text": "Pharmacy next door reports flu-jab requests up 30% this autumn."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "demand",
+     "sources": [],
+     "text": "Patient survey: 41% of working-age respondents can only come in outside weekday office hours."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "staff",
+     "sources": [],
+     "text": "Two of the five nurses have said they'd work Saturday shifts if they got time-and-a-half."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "noshows",
+     "sources": [],
+     "text": "Online booking has brought the no-show rate down from 14% to 9% since March."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "budget",
+     "sources": [
+      "f3"
+     ],
+     "text": "Time-and-a-half for two nurses on a 4-hour Saturday shift comes to roughly 520 pounds per Saturday."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1",
+      "f2"
+     ],
+     "text": "Decided: open Saturdays 8 to 12 on a three-month trial, 13 Saturdays."
+    },
+    {
+     "id": "x3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x2"
+     ],
+     "text": "Keeping SMS appointment reminders on for all patients. Not switching them off for any group."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "d1",
+      "f3"
+     ],
+     "text": "Staffing the Saturday trial with the two volunteer nurses already on the team. No new hires for now."
+    },
+    {
+     "id": "x4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "staff",
+     "sources": [],
+     "text": "The practice manager is on leave until the 20th."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "d1",
+      "f4"
+     ],
+     "text": "Decision: request about 6,800 pounds from the trustees to cover the Saturday trial. Basis is the 13 Saturdays we already agreed on, with two nurses at time-and-a-half at roughly 520 pounds per Saturday."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "comms",
+     "sources": [
+      "d1"
+     ],
+     "text": "Saturday hours are here! Eastfield Community Clinic is open Saturdays from 8 AM to 12 PM for a three-month trial. Walk in or call the front desk to book."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "budget",
+     "sources": [],
+     "text": "Last year's total clinic budget came to 310,000 pounds, up 4%."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "comms",
+     "sources": [
+      "d3",
+      "f2"
+     ],
+     "text": "Dear Trustees,\n\nWe are asking for about 6,800 pounds to run a Saturday morning trial at Eastfield Community Clinic. In our patient survey, 41% of working-age respondents said they can only come in outside weekday office hours, so weekends are where a lot of people are currently missing out on care. The money would cover 13 Saturdays, with two nurses on time-and-a-half at roughly 520 pounds per Saturday.\n\nCould we meet to talk this through before the next board meeting?"
+    },
+    {
+     "id": "p1",
+     "kind": "procedure",
+     "role": "planner",
+     "about": "comms",
+     "sources": [
+      "d1"
+     ],
+     "text": {
+      "name": "Announcing the Saturday opening change to patients",
+      "steps": [
+       "Send the text message to patients on the list, giving the Saturday 8 to 12 hours and the start date of the three-month trial.",
+       "Print the poster with the same hours and put it up in the waiting room and at the main entrance.",
+       "Add a banner to the clinic website homepage with the Saturday hours and a link to the full schedule.",
+       "Brief front-desk staff on a short script so they give the same Saturday hours to anyone who calls or walks in.",
+       "Check that the text, poster, banner and script all show identical hours before anything goes out."
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "pgmigrate",
+   "domain": "software engineering",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "db",
+     "sources": [],
+     "text": "Prod is on Postgres 12; EOL in November, security patches stop then."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "db",
+     "sources": [],
+     "text": "Orders table peak writes ~1,900 TPS, measured at last Black Friday."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "db",
+     "sources": [],
+     "text": "Reporting replica repl lag avg 4s this week."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "db",
+     "sources": [],
+     "text": "Staging dry-run restore of the 2.4 TB dataset: 6h 40m."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "infra",
+     "sources": [],
+     "text": "Managed Postgres large tier: rated for 3,000 sustained TPS."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "infra",
+     "sources": [],
+     "text": "The data tier cost $18k on last month's cloud bill."
+    },
+    {
+     "id": "f5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "infra",
+     "sources": [
+      "f2",
+      "f4"
+     ],
+     "text": "Large tier: 3,000 sustained TPS vs ~1,900 peak writes, so ~58% headroom."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1"
+     ],
+     "text": "Decision: upgrade prod to Postgres 16 before November. Cutover set for the first weekend of October."
+    },
+    {
+     "id": "x3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "infra",
+     "sources": [],
+     "text": "Vendor docs: minor-version upgrades on managed tier don't need downtime."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f5",
+      "d1"
+     ],
+     "text": "Managed large tier it is. xlarge not needed. Large covers peak writes with room to spare, so no reason to pay for the bigger box."
+    },
+    {
+     "id": "x4",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x1"
+     ],
+     "text": "Adding alert: fire when replica lag exceeds 30s."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f3",
+      "d1"
+     ],
+     "text": "Decision: 10-hr cutover window booked for Saturday night, covering restore plus validation."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "comms",
+     "sources": [
+      "d3"
+     ],
+     "text": "Planned maintenance Sat night: we're upgrading our production Postgres database to a newer major version, since the current one is nearing end of security support. Expect a window of up to 10 hours for the cutover, covering restore and validation. Some service interruption is possible during that time; we'll post updates here as it progresses."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "comms",
+     "sources": [
+      "d2",
+      "d3"
+     ],
+     "text": "Cutover-day runbook outline (for on-call):\n1. Freeze deploys and schema changes from T-2h; post freeze notice in #platform-ops.\n2. Confirm the new large-tier instance is healthy and the restore from the latest snapshot has finished.\n3. Put the app in read-only mode, stop writers, and wait for replication lag to reach zero.\n4. Repoint the connection string to the new instance and bounce the app pools.\n5. Run the validation checks (row counts, key tables, a smoke test of write paths) and sign off in the channel.\n6. If validation fails, roll back to the old instance before the window closes."
+    },
+    {
+     "id": "p1",
+     "kind": "procedure",
+     "role": "planner",
+     "about": "runbooks",
+     "sources": [
+      "d3",
+      "f3"
+     ],
+     "text": {
+      "name": "Postgres production cutover checklist",
+      "steps": [
+       "Freeze writes to the production database and confirm no open write sessions remain.",
+       "Take a snapshot of the production database and record its identifier.",
+       "Restore the snapshot into the new Postgres version host and wait for completion.",
+       "Validate row counts against the source across all tables before proceeding.",
+       "Switch DNS to the new host, then unfreeze writes and confirm traffic is landing."
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "river",
+   "domain": "nonprofit fundraising",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "site",
+     "sources": [],
+     "text": "A survey of the 14 km Alder Brook stretch identified nine culverts that block fish passage."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "cost",
+     "sources": [],
+     "text": "Contractor quotes for replacing one culvert range from 38,000 to 52,000 pounds."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "funding",
+     "sources": [],
+     "text": "The Catchment Fund will pay up to 60% of eligible capital costs."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "site",
+     "sources": [],
+     "text": "Volunteer survey reports otter sightings along Alder Brook have doubled since 2021."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "cost",
+     "sources": [
+      "f1",
+      "f2"
+     ],
+     "text": "Replacing all nine culverts would cost between 342,000 and 468,000 pounds, which is a formal estimate and not a fixed quotation."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "funding",
+     "sources": [],
+     "text": "The Heritage Lottery small-grants round closes on 14 March."
+    },
+    {
+     "id": "f5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "funding",
+     "sources": [
+      "f3",
+      "f4"
+     ],
+     "text": "At 60% of the 342,000 to 468,000 pound cost range, the grant would cover about 205,000 to 281,000 pounds, leaving the charity to find the remainder."
+    },
+    {
+     "id": "x3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "cost",
+     "sources": [],
+     "text": "Volunteer work-party days on Alder Brook are estimated to cost around £220 in insurance and tools."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f5"
+     ],
+     "text": "Decision: we will apply to the Catchment Fund and seek up to roughly £190,000 in match funding for the Alder Brook barrier removal."
+    },
+    {
+     "id": "x4",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x3"
+     ],
+     "text": "Decision: a volunteer planting day will be held in April. The £220 insurance and tools estimate for work-party days on Alder Brook is the only cost figure I am carrying into this step."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1",
+      "f4"
+     ],
+     "text": "Decision: We will phase the barrier removal, starting with the four worst culverts on Alder Brook, and treat the remaining culverts as a later phase."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "site",
+     "sources": [],
+     "text": "The landowner on the lower stretch has agreed to give survey crews access."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "application",
+     "sources": [
+      "f1",
+      "d2"
+     ],
+     "text": "The Alder Brook Barrier Removal project seeks funding to restore fish passage along a 14 km stretch of the brook, where a recent survey identified nine culverts that obstruct migration. The project proposes to address these barriers in phases, beginning with the four most severe culverts, with the remaining culverts to be considered in a subsequent phase. It is anticipated that this staged approach will allow the charity to deliver measurable improvements in connectivity within the grant period while building the evidence base needed for later work."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "application",
+     "sources": [
+      "d1",
+      "f5"
+     ],
+     "text": "Subject to the Catchment Fund's terms, we intend to apply for up to roughly £190,000 in match funding towards the Alder Brook barrier removal. Against an estimated total cost of £342,000 to £468,000, a 60% contribution would cover about £205,000 to £281,000, and we would expect the charity to meet the remainder from its own resources."
+    },
+    {
+     "id": "w3",
+     "kind": "draft",
+     "role": "writer",
+     "about": "application",
+     "sources": [
+      "w1",
+      "w2"
+     ],
+     "text": "Please find enclosed our application for support towards the Alder Brook barrier removal project. We respectfully submit it for the Fund's consideration and would be glad to supply any further information the panel may find helpful."
+    }
+   ]
+  },
+  {
+   "id": "wedding",
+   "domain": "event planning",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "guests",
+     "sources": [],
+     "text": "RSVPs are in so far: 92 yes, 14 no, and 20 still waiting."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "venue",
+     "sources": [],
+     "text": "The barn's licence caps total attendance at 110, and that count includes staff."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "guests",
+     "sources": [],
+     "text": "Heads up: the family's coming from Edinburgh and Cork, and that's 18 people who need somewhere to sleep."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "venue",
+     "sources": [],
+     "text": "The venue needs final catering numbers 14 days before the wedding, so that's the deadline to keep in mind."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "catering",
+     "sources": [],
+     "text": "The caterer's quote is 68 pounds a head for the three-course menu, and that already includes the evening buffet."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "catering",
+     "sources": [],
+     "text": "Heads up: one rival caterer quoted 61 pounds a head, but they can't do vegan options."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1",
+      "f2"
+     ],
+     "text": "Okay, we're closing RSVPs on the 1st and cutting back on plus-ones. We're close to the 110 licence cap, and that includes staff, so there's not much room left."
+    },
+    {
+     "id": "x3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x1"
+     ],
+     "text": "Going with a block booking of nine rooms at the Premier Inn for the Edinburgh and Cork crew."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1",
+      "f4"
+     ],
+     "text": "Catering budget's set at 6,500 pounds for about 95 guests. Going with that number for now, chatty and all."
+    },
+    {
+     "id": "x4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "venue",
+     "sources": [],
+     "text": "Parking at the barn holds 40 cars."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f3",
+      "d1"
+     ],
+     "text": "Going with an RSVP deadline three weeks before the big day, so the numbers are locked in time for the venue."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "messages",
+     "sources": [
+      "d3"
+     ],
+     "text": "Hey everyone! Quick nudge: please get your RSVP in by the deadline so we can lock in numbers with the barn venue. Thanks a ton, we can't wait to celebrate with you!"
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "music",
+     "sources": [],
+     "text": "The band says they need to start setting up at 3pm."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "messages",
+     "sources": [
+      "d2",
+      "f4"
+     ],
+     "text": "Hi there! Just confirming we're holding provisional numbers at about 95 guests for the wedding weekend at the barn. We're happy with the three-course menu at 68 pounds a head, which already includes the evening buffet. Could you send over the formal booking form when you get a sec? Thanks so much, speak soon!"
+    },
+    {
+     "id": "p1",
+     "kind": "procedure",
+     "role": "planner",
+     "about": "rsvp",
+     "sources": [
+      "d3"
+     ],
+     "text": {
+      "name": "Chasing late RSVPs",
+      "steps": [
+       "Send a text to anyone who hasn't replied on day one.",
+       "If still no answer, give them a call on day three.",
+       "On day five, ask the parents to chase whoever is still missing.",
+       "Log each reply in the guest list as it comes in."
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "retail",
+   "domain": "retail inventory",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "forecast",
+     "sources": [],
+     "text": "Holiday forecast for knit goods: 9,000 units."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "supply",
+     "sources": [],
+     "text": "Knit-goods supplier lead time: 5 weeks."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "stock",
+     "sources": [],
+     "text": "Woollen hat returns were 11% last January."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "stock",
+     "sources": [],
+     "text": "Knit goods on hand: 3,100 units."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "forecast",
+     "sources": [],
+     "text": "Footfall counter recorded 4,200 visitors last Saturday."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "stock",
+     "sources": [
+      "f1",
+      "f3"
+     ],
+     "text": "Knit goods: 3,100 units on hand against a 9,000-unit forecast, so about 5,900 short."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f4",
+      "f2"
+     ],
+     "text": "Place the 6,000-unit knit goods order by end of this week."
+    },
+    {
+     "id": "x3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "supply",
+     "sources": [],
+     "text": "Supplier invoice terms are now net 45."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1"
+     ],
+     "text": "Hiring six seasonal staff for the knit counter from mid-November."
+    },
+    {
+     "id": "x4",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x3"
+     ],
+     "text": "Moving supplier payments to a monthly run."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1"
+     ],
+     "text": "Extended hours set: open until 9pm Thursdays and Fridays through December."
+    },
+    {
+     "id": "d4",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "d1"
+     ],
+     "text": "Reserving 400 sq ft of back-room storage for the incoming delivery."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "forecast",
+     "sources": [],
+     "text": "Regional rival opening a store two streets away in February."
+    },
+    {
+     "id": "d5",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "d2"
+     ],
+     "text": "Staff training moves to the first week of November."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "comms",
+     "sources": [
+      "d3"
+     ],
+     "text": "Window poster: \"Harbor Street shopping just got easier. We're now open until 9pm on Thursdays and Fridays all through December.\"\n\nNewsletter blurb: From Thursday to Friday, every week in December, we're staying open until 9pm. Come by after work to browse holiday gifts and new arrivals at your own pace."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "comms",
+     "sources": [
+      "d1",
+      "f2"
+     ],
+     "text": "Hi Lena, we'd like to place a purchase order for 6,000 units of knit goods for the holiday season. Could you confirm receipt and the earliest delivery date, given a 5-week lead time?"
+    }
+   ]
+  },
+  {
+   "id": "course",
+   "domain": "university teaching",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "enrolment",
+     "sources": [],
+     "text": "Intro statistics enrolment this year is 335, down from 410."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "feedback",
+     "sources": [],
+     "text": "In the exit survey, 58% of students reported that the weekly problem sets took more than six hours."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "feedback",
+     "sources": [],
+     "text": "71% of students watched the lecture recordings at least once a week."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "staffing",
+     "sources": [],
+     "text": "The department has funding for five teaching assistants next year."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "rooms",
+     "sources": [],
+     "text": "The largest lecture hall seats 350."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "enrolment",
+     "sources": [],
+     "text": "The advanced statistics elective currently has a waiting list of 22 students."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1",
+      "f4"
+     ],
+     "text": "Decision: we will run one lecture section next year instead of the two originally planned."
+    },
+    {
+     "id": "x3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "rooms",
+     "sources": [],
+     "text": "The projector in room 3.14 is being replaced in January."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f2"
+     ],
+     "text": "Problem sets will be halved in number, with each set carrying greater weight."
+    },
+    {
+     "id": "x4",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x1"
+     ],
+     "text": "Lecture capture stays switched on for every session in the redesigned course."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1",
+      "f3"
+     ],
+     "text": "Each teaching assistant will be given a group of about 67 students for next year's introductory statistics course."
+    },
+    {
+     "id": "d4",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "d2"
+     ],
+     "text": "Problem sets will be weighted at 40% of the final mark, and the grading scheme will be rewritten to reflect that."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "staffing",
+     "sources": [],
+     "text": "Two of the TAs are international students who need visa letters."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "syllabus",
+     "sources": [
+      "d1",
+      "d2",
+      "d4"
+     ],
+     "text": "This section sets out the structure and assessment of the introductory statistics course for next year. The course runs as a single lecture section. Problem sets make up 40% of the final mark, and there are half as many sets as before, with each set carrying more weight. The remaining assessment and grading arrangements are as follows."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "comms",
+     "sources": [
+      "d3"
+     ],
+     "text": "Dear TAs,\n\nThank you for your continued work on the introductory statistics course. Your allocations for next year are being finalised, and each of you will be responsible for a group of about 67 students. Details of your specific group and your office hours will follow shortly, and I would welcome any scheduling constraints you wish to raise before then."
+    },
+    {
+     "id": "p1",
+     "kind": "procedure",
+     "role": "planner",
+     "about": "grading",
+     "sources": [
+      "d4"
+     ],
+     "text": {
+      "name": "Moderating marks across TAs",
+      "steps": [
+       "Have each TA mark the same sample of 10 scripts independently.",
+       "Compare the marks each TA gave to every script side by side.",
+       "Discuss each script where marks differ and agree on a common standard.",
+       "Reconcile the remaining differences and record the agreed marks.",
+       "Apply the agreed standard to the rest of the scripts."
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "bikelane",
+   "domain": "local government",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "traffic",
+     "sources": [],
+     "text": "Counter data shows about 1,250 cyclists per weekday on Mill Road in September."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "safety",
+     "sources": [],
+     "text": "Police records show seven cyclist injuries on Mill Road over the last two years."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "traffic",
+     "sources": [],
+     "text": "Route 14 bus ridership is up 6% year on year."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "cost",
+     "sources": [],
+     "text": "The council's last protected cycle lane was built at a cost of £1.1 million per kilometre."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "site",
+     "sources": [],
+     "text": "The Mill Road stretch under review is 2.3 km long."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "cost",
+     "sources": [],
+     "text": "Resurfacing Mill Road without a bike lane is costed at £0.4 million per kilometre."
+    },
+    {
+     "id": "f5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "cost",
+     "sources": [
+      "f3",
+      "f4"
+     ],
+     "text": "Estimated build cost for the Mill Road protected cycle lane is roughly £2.5 million."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1",
+      "f2"
+     ],
+     "text": "Mill Road will be placed first in the cycling plan's priority order."
+    },
+    {
+     "id": "x3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "site",
+     "sources": [],
+     "text": "Utility works on Mill Road are planned for March 2027."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f5",
+      "d1"
+     ],
+     "text": "We will request £2.6 million from the transport capital programme for the Mill Road protected cycle lane."
+    },
+    {
+     "id": "x4",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x1"
+     ],
+     "text": "Decision: Ask the bus operator to review the route 14 timetable."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f2"
+     ],
+     "text": "Decision: the Mill Road proposal will include a 20 mph speed limit along the corridor."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "reports",
+     "sources": [
+      "d2"
+     ],
+     "text": "The Committee is asked to approve a request for £2.6 million from the transport capital programme to fund the protected cycle lane on Mill Road."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "reports",
+     "sources": [
+      "d1",
+      "d3",
+      "f1"
+     ],
+     "text": "Notice of public consultation: proposed protected cycle lane on Mill Road. The council invites residents, businesses and road users to comment on the proposed scheme, which is now open for consultation. Details of the proposal and how to respond will be available through the council's website and at the council offices."
+    },
+    {
+     "id": "w3",
+     "kind": "draft",
+     "role": "writer",
+     "about": "reports",
+     "sources": [
+      "w2"
+     ],
+     "text": "Frequently asked questions: proposed protected cycle lane on Mill Road\n\nQ: What is being proposed?\nA: The council is consulting on a protected cycle lane on Mill Road. Full details of the scheme are available on the council's website and at the council offices.\n\nQ: Who can comment?\nA: Residents, businesses and road users are all invited to comment during the consultation period.\n\nQ: How can I respond?\nA: Responses can be made through the council's website or by using the details provided at the council offices.\n\nQ: Will there be a residents' meeting where I can ask questions?\nA: Yes. This sheet is provided to help answer common questions at the residents' meeting."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "safety",
+     "sources": [],
+     "text": "A crossing near the primary school is signed at 30 mph, and a consultation is scheduled for it."
+    }
+   ]
+  },
+  {
+   "id": "litreview",
+   "domain": "medical research",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "marlowe",
+     "sources": [],
+     "text": "The 2022 Marlowe trial enrolled 214 patients and reported a 31% reduction in migraine days at 12 weeks."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "openlabel",
+     "sources": [],
+     "text": "A 2023 open-label study (n = 48) reported no significant reduction in migraine frequency, but it used half the standard dose."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "other",
+     "sources": [],
+     "text": "A 2019 trial of a different compound reported a 22% reduction in migraine days."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "safety",
+     "sources": [],
+     "text": "In the Marlowe trial, most adverse events were mild nausea, reported by 9% of treated patients."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "marlowe",
+     "sources": [],
+     "text": "The Marlowe trial excluded patients over 65."
+    },
+    {
+     "id": "f5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "synthesis",
+     "sources": [
+      "f1",
+      "f2"
+     ],
+     "text": "Taken together, the 2022 Marlowe trial and the 2023 open-label study hint that the drug's effect may depend on dose, though the two designs differ and the comparison is indirect."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "journal",
+     "sources": [],
+     "text": "The journal's submission portal closes for maintenance on 3 December."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f5"
+     ],
+     "text": "Headline conclusion for the review: the drug shows efficacy at full dose, and the evidence at half dose is inconclusive."
+    },
+    {
+     "id": "x3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "safety",
+     "sources": [],
+     "text": "Regulators issued a warning in 2021 about liver effects in a related drug class."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f3",
+      "f4"
+     ],
+     "text": "Flagging safety evidence in older adults as limited for the review, since the main trial excluded patients over 65."
+    },
+    {
+     "id": "x4",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x2"
+     ],
+     "text": "Decision: submit the review before the portal closes for maintenance on 3 December."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "review",
+     "sources": [
+      "d1"
+     ],
+     "text": "This review finds that the drug reduces migraine frequency at full dose, while the evidence at half dose is inconclusive and does not allow a firm conclusion either way."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "review",
+     "sources": [
+      "d2",
+      "f3"
+     ],
+     "text": "The safety data for this migraine drug come mainly from short-term trials, and adverse events were generally mild. In the Marlowe trial, the most common event was nausea, reported by 9% of treated patients. Evidence in older adults is limited, because the main trial excluded patients over 65, so the safety profile in that group cannot be assumed from the current findings."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "openlabel",
+     "sources": [],
+     "text": "The 2023 open-label study was funded by the manufacturer."
+    },
+    {
+     "id": "w3",
+     "kind": "draft",
+     "role": "writer",
+     "about": "review",
+     "sources": [
+      "w1",
+      "w2"
+     ],
+     "text": "Taken together, the available evidence supports a reduction in migraine frequency at full dose. At half dose, the findings are inconclusive, and they do not allow a firm conclusion in either direction. Safety data come mainly from short-term trials, where adverse events were generally mild and nausea was the most common event (9% of treated patients in the Marlowe trial). Because that trial excluded patients over 65, the safety profile in older adults remains unestablished and should not be assumed from these results. Longer-term and more representative studies are needed before firmer conclusions can be drawn."
+    }
+   ]
+  },
+  {
+   "id": "foodtruck",
+   "domain": "small business",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "menu",
+     "sources": [],
+     "text": "Tacos are about 70% of what we sell at the weekend market, and the sides barely move."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "costs",
+     "sources": [],
+     "text": "Riverside market pitch fee: $85 for Saturday, $60 for Sunday."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "costs",
+     "sources": [],
+     "text": "Propane refill runs about 22 dollars, and we go through roughly one a weekend."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "costs",
+     "sources": [],
+     "text": "Ingredients run about $1.30 per taco, and we sell each one for $4."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "sales",
+     "sources": [],
+     "text": "Saturdays average around 190 customers, and most of them grab about 2.4 tacos each."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "menu",
+     "sources": [],
+     "text": "Customers keep asking for a vegan option."
+    },
+    {
+     "id": "f5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "sales",
+     "sources": [
+      "f3",
+      "f4"
+     ],
+     "text": "Saturday taco gross margin is about $1,230 before the pitch fee comes out."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1"
+     ],
+     "text": "Cutting the sides down to two items. The sides barely move, so we'll keep the two that sell best and drop the rest."
+    },
+    {
+     "id": "x3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x2"
+     ],
+     "text": "Going to trial a jackfruit taco for four weeks, since customers keep asking for a vegan option."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f5",
+      "f2"
+     ],
+     "text": "Keeping the Saturday pitch. About $1,230 margin before the fee, so the $85 comes out easily."
+    },
+    {
+     "id": "x4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "sales",
+     "sources": [],
+     "text": "Rainy Saturdays bring in about 40% fewer customers than dry ones."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "d1"
+     ],
+     "text": "Cancelling the standing order of paper boats for side dishes, so we stop paying for boats nobody's using."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "menu",
+     "sources": [],
+     "text": "Salsa verde is the topping people ask for most."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "social",
+     "sources": [
+      "d1"
+     ],
+     "text": "Heads up, taco fans: we're trimming the sides menu to just the two that everyone keeps ordering. Same great tacos, less to juggle, so we can serve you faster at the market. Catch us this weekend and grab your favorite!"
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "plan",
+     "sources": [
+      "d2",
+      "f5"
+     ],
+     "text": "Hi there! We're really excited to keep our Saturday spot at the market. We've been serving tacos here every week, we show up on time, and we're fully committed to being part of the market's community. Thanks for having us, and we can't wait to keep cooking for your crowds!"
+    }
+   ]
+  },
+  {
+   "id": "cloudcost",
+   "domain": "cloud cost management",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "usage",
+     "sources": [],
+     "text": "Dev and staging clusters run 24/7; usage is roughly 9am-7pm weekdays only."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "pricing",
+     "sources": [],
+     "text": "One-year reserved instances come in about 38% cheaper than on-demand."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "usage",
+     "sources": [],
+     "text": "Object storage grew 14% last quarter."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "usage",
+     "sources": [],
+     "text": "Production compute averages 78% steady load, with little daily variation."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "bill",
+     "sources": [],
+     "text": "Monthly compute spend: $42k total. Production $30k, dev and staging $12k."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "pricing",
+     "sources": [],
+     "text": "Spot instances: up to 70% cheaper than on-demand; interruption notice is two minutes."
+    },
+    {
+     "id": "f5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "bill",
+     "sources": [
+      "f1",
+      "f4"
+     ],
+     "text": "Dev and staging scheduled off nights and weekends: roughly $8k/month savings."
+    },
+    {
+     "id": "f6",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "bill",
+     "sources": [
+      "f2",
+      "f3",
+      "f4"
+     ],
+     "text": "One-year reservations on the production baseline: est. ~$11k/month savings."
+    },
+    {
+     "id": "x3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "bill",
+     "sources": [],
+     "text": "Data transfer fees were 3.1k dollars last month."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f5"
+     ],
+     "text": "Decision: power down dev and staging 8pm to 7am, and all weekend."
+    },
+    {
+     "id": "x4",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x1"
+     ],
+     "text": "Moving logs older than 90 days to archive storage: adding a lifecycle rule for that."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f6"
+     ],
+     "text": "Buy one-year reserved instances for the production baseline."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f5",
+      "f6"
+     ],
+     "text": "Target set: cut cloud spend by $19k/month by end of Q2."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "usage",
+     "sources": [],
+     "text": "The data team's nightly batch runs 1am to 4am on production replicas."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "memo",
+     "sources": [
+      "d3"
+     ],
+     "text": "Subject: Cloud spend reduction target, $19k/month by end of Q2\n\nFinance team, the platform team is committing to cut monthly cloud spend by $19k by the end of Q2. We will send progress against that figure as the work moves forward."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "memo",
+     "sources": [
+      "d1"
+     ],
+     "text": "Heads-up: dev and staging will have downtime windows starting soon. They'll power down 8pm to 7am each night and all weekend, so plan builds and test runs around those hours."
+    },
+    {
+     "id": "p1",
+     "kind": "procedure",
+     "role": "planner",
+     "about": "ops",
+     "sources": [
+      "d1"
+     ],
+     "text": {
+      "name": "Out-of-hours staging override",
+      "steps": [
+       "Engineer posts the urgent fix reason and ticket ID in the platform channel.",
+       "Engineer runs the wake command for the staging cluster and sets a duration of no more than 2 hours.",
+       "Confirm the cluster reports ready before deploying the fix.",
+       "Scale the cluster back down or let the timer expire once the fix is verified.",
+       "Log the wake in the cost notebook with the start time, end time, and reason."
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "newsroom",
+   "domain": "journalism",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "claims",
+     "sources": [],
+     "text": "Councillor Hale told us the depot closure will cost 140 jobs."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "documents",
+     "sources": [],
+     "text": "The council's briefing paper on the depot closure lists 96 affected posts."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "background",
+     "sources": [],
+     "text": "Another Eastham depot closed in 2019, cutting 60 posts."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "claims",
+     "sources": [],
+     "text": "The union says it has 310 members at the depot."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "background",
+     "sources": [],
+     "text": "The depot has been operating since 1974."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "claims",
+     "sources": [],
+     "text": "The mayor's office declined to comment."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1"
+     ],
+     "text": "Leading with the job-loss figure: 140 jobs at the depot."
+    },
+    {
+     "id": "x3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x2"
+     ],
+     "text": "Mayor's office declined to comment; we'll flag that in the story."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1",
+      "f3"
+     ],
+     "text": "Lead the story with the claim that nearly half the union's membership is at risk. The union reports 310 members at the depot, and the 140 jobs Councillor Hale cited make up about that share of them."
+    },
+    {
+     "id": "x4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "documents",
+     "sources": [],
+     "text": "The council's public consultation on the depot closure ends on 30 November."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "story",
+     "sources": [
+      "d1",
+      "f4"
+     ],
+     "text": "The bus depot on Harbor Road will close, and 140 jobs go with it. The transit authority confirmed the closure this week, ending a run that began in 1974.\n\nWorkers were told the depot's last day of service is still to be set, and staff are being asked to plan for a move to other facilities in the district. The decision leaves local riders and the 140 employees facing a change that many had not expected."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "story",
+     "sources": [
+      "d2"
+     ],
+     "text": "The closure puts nearly half of our members at risk,\" said the union spokesperson. \"We are not going to let these jobs disappear quietly."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "claims",
+     "sources": [],
+     "text": "A former depot worker said morale at the depot had been low for years."
+    },
+    {
+     "id": "w3",
+     "kind": "draft",
+     "role": "writer",
+     "about": "story",
+     "sources": [
+      "w1"
+     ],
+     "text": "Harbor Road bus depot to close, 140 jobs go\nTransit authority confirms shutdown of depot operating since 1974; staff told to plan for moves to other district facilities"
+    },
+    {
+     "id": "p1",
+     "kind": "procedure",
+     "role": "planner",
+     "about": "desk",
+     "sources": [
+      "d1"
+     ],
+     "text": {
+      "name": "Verifying job-loss figures before publication",
+      "steps": [
+       "Pull the job-loss number from the draft and log it as unconfirmed.",
+       "Find a document that states the figure and note its source and date.",
+       "Get the same figure from a second named source who can be quoted or cited.",
+       "Check that the document and the second source agree before the number stays in the story.",
+       "Hold publication of any job-loss number that lacks both a document and a second named source."
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "fitnessapp",
+   "domain": "product management",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "survey",
+     "sources": [],
+     "text": "In-app survey (2,300 responses): 44% asked for social challenges, 19% for meal logging."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "churn",
+     "sources": [],
+     "text": "Users who finish the first-week streak churn at about a third of the rate of those who don't."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "survey",
+     "sources": [],
+     "text": "Median session length: 11 min on iOS, 8 min on Android."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "engineering",
+     "sources": [],
+     "text": "Eng estimates: social challenges ~8 weeks, meal logging ~14 weeks."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "engineering",
+     "sources": [],
+     "text": "Two engineers are out on leave for three weeks in August."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "churn",
+     "sources": [],
+     "text": "Churn rose 6% in March, right after the pricing change."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1",
+      "f3"
+     ],
+     "text": "Social challenges go first next half, and meal logging moves to the half after. Survey demand favors challenges (44% vs 19% of 2,300 responses), and they're the shorter build at about 8 weeks versus 14."
+    },
+    {
+     "id": "x3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x2"
+     ],
+     "text": "Going with annual-plan discount codes for lapsed users as the next move, since churn went up after the pricing change."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f2"
+     ],
+     "text": "Decision: add a streak reminder push notification to the first week of onboarding. Users who finish the first-week streak churn at about a third of the rate of those who don't, so we're putting the nudge where it counts most."
+    },
+    {
+     "id": "x4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "engineering",
+     "sources": [],
+     "text": "The Android build pipeline moves to a new CI provider in July."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "d1",
+      "f4"
+     ],
+     "text": "Decision: target a mid-September release for social challenges. Keeping it as the first build next half, with meal logging following after."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "updates",
+     "sources": [
+      "d1",
+      "d3"
+     ],
+     "text": "Heads up for the all-hands: next half we're building social challenges first, with a mid-September release target. Meal logging follows in the half after. Challenges won on survey demand (44% vs 19% of 2,300 responses) and they're the shorter build at about 8 weeks versus 14."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "survey",
+     "sources": [],
+     "text": "Only 4% of survey respondents asked for a smartwatch app."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "updates",
+     "sources": [
+      "d2"
+     ],
+     "text": "Heads up: the streak reminder is coming to new users. Starting with onboarding week one, you'll get a push nudge to keep your streak going, since people who finish that first-week streak stick around far more often."
+    },
+    {
+     "id": "w3",
+     "kind": "draft",
+     "role": "writer",
+     "about": "updates",
+     "sources": [
+      "w1"
+     ],
+     "text": "Thanks for asking about meal logging! We're building social challenges first next half, targeting a mid-September release. Meal logging is next on the list after that, in the half following. We'll share more as the plan firms up."
+    }
+   ]
+  },
+  {
+   "id": "warehouse",
+   "domain": "logistics",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "throughput",
+     "sources": [],
+     "text": "Pilot robots hit 140 order lines per hour; manual picking averages 85 order lines per picker-hour."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "labour",
+     "sources": [],
+     "text": "Pickers run about $22/hour fully loaded."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "labour",
+     "sources": [],
+     "text": "Warehouse staff turnover is running at 28% a year."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "robots",
+     "sources": [],
+     "text": "The vendor lease runs $4,800 per robot per month, and each robot needs a human assistant roughly 20% of the time."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "volume",
+     "sources": [],
+     "text": "Peak-season volume is about 12,000 order lines a day over two shifts."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "volume",
+     "sources": [],
+     "text": "Returns processing handles about 900 lines a day."
+    },
+    {
+     "id": "f5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "throughput",
+     "sources": [
+      "f1",
+      "f4"
+     ],
+     "text": "Peak volume works out to roughly nine manual pickers per shift, or about five robots."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f5",
+      "f2",
+      "f3"
+     ],
+     "text": "Decision: Lease ten robots for the peak season."
+    },
+    {
+     "id": "x3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x1"
+     ],
+     "text": "Introducing a 90-day retention bonus for new hires."
+    },
+    {
+     "id": "x4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "robots",
+     "sources": [],
+     "text": "A competing robot vendor demo is scheduled for the 12th."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "d1"
+     ],
+     "text": "Decision: Aisles 4 to 7 will be re-laid out with dedicated lanes for the robots."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "d1"
+     ],
+     "text": "Decision: Train four pickers to work as robot assistants."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "throughput",
+     "sources": [],
+     "text": "Forklift congestion in aisle 2 adds about six minutes per pick-up run."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "comms",
+     "sources": [
+      "d1"
+     ],
+     "text": "Subject: Order request, ten picking robots for peak season\n\nHello,\n\nWe would like to place an order for ten picking robots for the peak season lease. Please confirm availability and send the lease paperwork so we can start the onboarding process.\n\nThank you,\nDistribution Centre Operations"
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "comms",
+     "sources": [
+      "d3"
+     ],
+     "text": "Team, ahead of peak we're training four pickers to work alongside the new picking robots as robot assistants. This is retraining, not redeployment out of the building: nobody loses their job because of the robots, and anyone who wants the training will get it on paid shifts."
+    }
+   ]
+  },
+  {
+   "id": "renovation",
+   "domain": "home renovation",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "measure",
+     "sources": [],
+     "text": "The kitchen floor measures 4.2 m by 3.1 m."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "materials",
+     "sources": [],
+     "text": "The oak-effect vinyl planks come in packs covering 2.2 square metres."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "measure",
+     "sources": [],
+     "text": "The hallway measures 1.1 metres wide, so cabinet delivery might be a squeeze."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "budget",
+     "sources": [],
+     "text": "We've set aside 6,500 pounds for the kitchen refit."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "materials",
+     "sources": [
+      "f1",
+      "f2"
+     ],
+     "text": "Looks like we'll need seven packs of the flooring once you add 10% for cuts."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "materials",
+     "sources": [],
+     "text": "Laminate comes in at 14 pounds per square metre, vinyl at 26."
+    },
+    {
+     "id": "x3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "budget",
+     "sources": [],
+     "text": "The boiler service is due in October, and it's about 90 pounds."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f4"
+     ],
+     "text": "Going with seven packs of the vinyl planks, so let's order those."
+    },
+    {
+     "id": "x4",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x3"
+     ],
+     "text": "Booking the boiler service for the first week of October, since it's due then anyway."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f3"
+     ],
+     "text": "Going with the mid-range cabinet line, not the premium one, so we stay within the kitchen budget."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "measure",
+     "sources": [],
+     "text": "Ceiling height measured at 2.4 metres."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "d1",
+      "d2"
+     ],
+     "text": "Booking the fitter for the week of the 18th: floor first, then cabinets after."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "builder",
+     "sources": [
+      "d3"
+     ],
+     "text": "Hi! Just confirming the dates with you: we're good for the week of the 18th, with the floor going in first and the cabinets following after. Let us know if anything shifts on your end."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "builder",
+     "sources": [
+      "d1"
+     ],
+     "text": "Hey, quick heads-up for when the flooring arrives: check the box count against the seven packs we ordered, look over each plank for chips or warping before the driver leaves, and set the boxes in the kitchen so they can sit for a day before anyone lays them."
+    }
+   ]
+  },
+  {
+   "id": "claims",
+   "domain": "insurance operations",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "policy",
+     "sources": [],
+     "text": "Clause 7.2 excludes water damage from gradual leakage unless the leak was sudden and unforeseen."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "policy",
+     "sources": [],
+     "text": "Clause 12 requires that claims be notified within 30 days of discovery."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "other",
+     "sources": [],
+     "text": "Claim 8842 is a stolen bicycle, reported the same day."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "case",
+     "sources": [],
+     "text": "Claim 8841: the customer reports a burst pipe on 3 June and notified the insurer on 9 July."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "case",
+     "sources": [
+      "f2",
+      "f3"
+     ],
+     "text": "Claim 8841 was notified 36 days after discovery."
+    },
+    {
+     "id": "f5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "case",
+     "sources": [],
+     "text": "The plumber's report for claim 8841 states that the pipe failed suddenly."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "policy",
+     "sources": [],
+     "text": "The excess on home contents claims is 250 pounds."
+    },
+    {
+     "id": "f6",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "policy",
+     "sources": [],
+     "text": "Clause 15 lets senior staff accept late claims at their discretion."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f4",
+      "f6"
+     ],
+     "text": "Claim 8841 will be referred for discretionary late-notification review under Clause 15 rather than rejected, given that it was notified 36 days after discovery."
+    },
+    {
+     "id": "x3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x1"
+     ],
+     "text": "Claim 8842: requesting a police crime reference from the customer before we proceed."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1",
+      "f5"
+     ],
+     "text": "Claim 8841: the water damage is to be treated as covered under the sudden-failure exception to clause 7.2, since the plumber's report states the pipe failed suddenly."
+    },
+    {
+     "id": "x4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "case",
+     "sources": [],
+     "text": "The claim 8841 property is a 1960s terraced house in Leeds."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "d1",
+      "d2"
+     ],
+     "text": "Claim 8841: escalating to the senior adjuster with a recommendation for partial approval."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "letters",
+     "sources": [
+      "d3"
+     ],
+     "text": "Dear Policyholder,\n\nThank you for your patience while we reviewed claim 8841. We have reached an outcome on your water-damage claim, and we are writing to explain it in full."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "letters",
+     "sources": [
+      "d1"
+     ],
+     "text": "Dear Policyholder,\n\nWe are reviewing claim 8841 for water damage and need to understand why the loss was reported 36 days after it was discovered. Could you please write to us with an explanation of that delay, including any relevant dates and events, so we can consider it as part of the review."
+    },
+    {
+     "id": "p1",
+     "kind": "procedure",
+     "role": "planner",
+     "about": "process",
+     "sources": [
+      "d1"
+     ],
+     "text": {
+      "name": "Handling a late-notified claim",
+      "steps": [
+       "Check the discovery date and the notification date against the policy notice window.",
+       "Note the reason given for the delay in the claim file.",
+       "Refer the claim for discretionary late-notification review under Clause 15 and obtain senior sign-off.",
+       "Record the review decision and the reasons for it on the claim file."
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "mlpaper",
+   "domain": "machine learning research",
+   "items": [
+    {
+     "id": "f1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "data",
+     "sources": [],
+     "text": "After dedup, train set = 1.8M examples (from 2.3M)."
+    },
+    {
+     "id": "f2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "results",
+     "sources": [],
+     "text": "BERT-base baseline: 84.1 F1 on test split."
+    },
+    {
+     "id": "x1",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "data",
+     "sources": [],
+     "text": "The test split has 12,000 examples and was not touched by dedup."
+    },
+    {
+     "id": "f3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "results",
+     "sources": [
+      "f1"
+     ],
+     "text": "Dedup-trained model: 86.9 F1."
+    },
+    {
+     "id": "f4",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "compute",
+     "sources": [],
+     "text": "Each full training run takes ~14 GPU-hours on the A100 node."
+    },
+    {
+     "id": "x2",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "results",
+     "sources": [],
+     "text": "RoBERTa-large baseline: 85.0 F1."
+    },
+    {
+     "id": "f5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "results",
+     "sources": [
+      "f2",
+      "f3"
+     ],
+     "text": "Dedup-trained model vs BERT-base baseline: +2.8 F1 (86.9 vs 84.1 on test)."
+    },
+    {
+     "id": "d1",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f5"
+     ],
+     "text": "Headline claim will be a 2.8 F1 gain over the BERT-base baseline; results to be reported across three seeds."
+    },
+    {
+     "id": "x3",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "compute",
+     "sources": [],
+     "text": "The cluster enforces a 48-hour job time limit."
+    },
+    {
+     "id": "d2",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f4"
+     ],
+     "text": "Going with 5 seeds per ablation across 3 ablations, 15 runs total, 210 GPU-hours requested (15 x 14 h)."
+    },
+    {
+     "id": "x4",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "x3"
+     ],
+     "text": "Checkpointing every 6 h so jobs can resume after preemption or the 48 h limit."
+    },
+    {
+     "id": "d3",
+     "kind": "decision",
+     "role": "planner",
+     "about": null,
+     "sources": [
+      "f1",
+      "d1"
+     ],
+     "text": "Decision: add a deduplication ablation section to the paper, since the train set dropped from 2.3M to 1.8M examples after dedup."
+    },
+    {
+     "id": "x5",
+     "kind": "fact",
+     "role": "researcher",
+     "about": "results",
+     "sources": [],
+     "text": "Inference latency measured at 23 ms per example on a single GPU."
+    },
+    {
+     "id": "w1",
+     "kind": "draft",
+     "role": "writer",
+     "about": "paper",
+     "sources": [
+      "d1"
+     ],
+     "text": "We propose a lightweight adapter for text classification that improves macro-F1 over a BERT-base baseline by 2.8 points, with results reported across three random seeds."
+    },
+    {
+     "id": "w2",
+     "kind": "draft",
+     "role": "writer",
+     "about": "paper",
+     "sources": [
+      "f1",
+      "f3"
+     ],
+     "text": "Figure: Effect of training-set deduplication on test F1. Deduplication reduces the training set from 2.3M to 1.8M examples; the deduplicated model reaches 86.9 F1."
+    },
+    {
+     "id": "w3",
+     "kind": "draft",
+     "role": "writer",
+     "about": "paper",
+     "sources": [
+      "d3",
+      "w2"
+     ],
+     "text": "We ablate training-set deduplication to test whether the reduction from 2.3M to 1.8M training examples affects the classifier. The deduplicated model reaches 86.9 test F1, which we compare against the model trained on the full 2.3M-example set."
+    }
+   ]
+  }
+ ]
+}

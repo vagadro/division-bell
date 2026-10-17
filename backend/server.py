@@ -89,7 +89,7 @@ def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, do
         except llm.LLMBudgetError as e:
             raise HTTPException(429, str(e))
 
-    # --- who am I ---
+    # Who am I
 
     @app.get("/api/orgs")
     def orgs():
@@ -106,7 +106,7 @@ def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, do
         s = state["spend"]
         return {"mode": mode, "spend": round(s.total, 6), "cap": s.cap, "calls": s.calls}
 
-    # --- chats ---
+    # Chats
 
     @app.get("/api/chats")
     def chats(x_user: str = Header(None), x_org: str = Header(None)):
@@ -131,7 +131,7 @@ def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, do
         return guarded(lambda: llm.team_turn(team(mem, agents, chat), body.text, client=llm_client(),
                                              spend=state["spend"], owner=owner))
 
-    # --- the panels ---
+    # The panels
 
     @app.get("/api/agents")
     def agents_(x_user: str = Header(None), x_org: str = Header(None)):
@@ -166,7 +166,7 @@ def create_app(tenants=None, client=None, mode=None, spend_cap=llm.SPEND_CAP, do
             raise HTTPException(400, out["error"])
         return out
 
-    # --- the page ---
+    # The page
 
     if STATIC.is_dir():
         app.mount("/static", StaticFiles(directory=STATIC), name="static")

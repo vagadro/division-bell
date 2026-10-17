@@ -34,7 +34,7 @@ def status(mem, item_id):
     return mem.g.query("MATCH (x {id:$id}) RETURN x.status", {"id": item_id}).result_set[0][0]
 
 
-# --- decide ---
+# Decide
 
 def test_decide_builds_lineage_and_explain_shows_it(chain):
     c = chain
@@ -86,7 +86,7 @@ def test_a_decision_starts_private_even_on_shared_sources(chain):
     assert c["mem"].explain(c["r"], plan)[0]["id"] == plan   # ...until it is published
 
 
-# --- blast radius (dry run) ---
+# Blast radius (dry run)
 
 def test_blast_radius_lists_downstream_with_depth_and_changes_nothing(chain):
     c = chain
@@ -97,7 +97,7 @@ def test_blast_radius_lists_downstream_with_depth_and_changes_nothing(chain):
     assert all(status(c["mem"], c[k]) == "active" for k in ("f1", "f2", "f3", "d1", "d2"))
 
 
-# --- retract ---
+# Retract
 
 def test_retract_flags_exactly_the_downstream_items(chain):
     c = chain
@@ -253,7 +253,7 @@ def test_explain_shows_which_link_was_retracted(chain):
     assert trail == {c["d2"]: "flagged", c["d1"]: "flagged", c["f2"]: "flagged", c["f1"]: "retracted"}
 
 
-# --- only the author can change a fact ---
+# Only the author can change a fact
 
 def test_other_agents_cannot_supersede_correct_or_retract_a_shared_fact(chain):
     c = chain
@@ -281,7 +281,7 @@ def test_a_disagreeing_agent_can_still_write_its_own_competing_fact(chain):
     assert status(mem, c["f1"]) == "active"
 
 
-# --- correct: retract + write the right fact in one step ---
+# Correct: retract + write the right fact in one step
 
 def test_correct_flags_downstream_and_writes_the_right_fact(chain):
     c = chain
@@ -343,7 +343,7 @@ def test_a_decision_can_be_redone_on_the_corrected_fact(chain):
     assert [t["id"] for t in mem.explain(c["p"], redo)] == [redo, new]
 
 
-# --- supersede after the earlier fix ---
+# Supersede after the earlier fix
 
 def test_cannot_supersede_a_retracted_fact(chain):
     c = chain

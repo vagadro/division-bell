@@ -1,0 +1,1294 @@
+{
+"clinic|f1|0": [],
+"clinic|f1|1": [],
+"clinic|f1|2": [],
+"clinic|f2|0": [
+"w2"
+],
+"clinic|f2|1": [
+"w2"
+],
+"clinic|f2|2": [
+"w2"
+],
+"clinic|f3|0": [
+"f4",
+"d2",
+"d3",
+"w2"
+],
+"clinic|f3|1": [
+"f4",
+"d3",
+"w2"
+],
+"clinic|f3|2": [
+"f4",
+"d3",
+"w2"
+],
+"clinic|x2|0": [],
+"clinic|x2|1": [],
+"clinic|x2|2": [],
+"clinic|f4|0": [
+"d3",
+"w2"
+],
+"clinic|f4|1": [
+"d3",
+"w2"
+],
+"clinic|f4|2": [
+"d3",
+"w2"
+],
+"pgmigrate|f1|0": [
+"d1",
+"w1"
+],
+"pgmigrate|f1|1": [
+"d1",
+"d3",
+"w1",
+"w2"
+],
+"pgmigrate|f1|2": [
+"d1",
+"w1"
+],
+"pgmigrate|f2|0": [
+"f5",
+"d2"
+],
+"pgmigrate|f2|1": [
+"f5",
+"d2"
+],
+"pgmigrate|f2|2": [
+"f5",
+"d2"
+],
+"pgmigrate|x1|0": [
+"x4"
+],
+"pgmigrate|x1|1": [
+"x4"
+],
+"pgmigrate|x1|2": [
+"x4"
+],
+"pgmigrate|f3|0": [
+"d3",
+"w1"
+],
+"pgmigrate|f3|1": [
+"d3",
+"w1"
+],
+"pgmigrate|f3|2": [
+"d3",
+"w1"
+],
+"pgmigrate|f4|0": [
+"f5",
+"d2"
+],
+"pgmigrate|f4|1": [
+"f5",
+"d2"
+],
+"pgmigrate|f4|2": [
+"f5",
+"d2"
+],
+"pgmigrate|f5|0": [
+"d2"
+],
+"pgmigrate|f5|1": [
+"d2",
+"w2"
+],
+"pgmigrate|f5|2": [
+"d2"
+],
+"river|f1|0": [
+"f4",
+"f5",
+"d1",
+"d2",
+"w1",
+"w2"
+],
+"river|f1|1": [
+"f4",
+"f5",
+"d1",
+"d2",
+"w1",
+"w2"
+],
+"river|f1|2": [
+"f4",
+"f5",
+"d1",
+"d2",
+"w1",
+"w2",
+"w3"
+],
+"river|f2|0": [
+"f4",
+"f5",
+"d1",
+"w2"
+],
+"river|f2|1": [
+"f4",
+"f5",
+"d1",
+"w2"
+],
+"river|f2|2": [
+"f4",
+"f5",
+"d1",
+"w2"
+],
+"river|f3|0": [
+"f5",
+"w2"
+],
+"river|f3|1": [
+"f5",
+"d1",
+"w2",
+"w3"
+],
+"river|f3|2": [
+"f5",
+"d1",
+"w2",
+"w3"
+],
+"river|f4|0": [
+"f5",
+"d1",
+"w2"
+],
+"river|f4|1": [
+"f5",
+"d1",
+"w2"
+],
+"river|f4|2": [
+"f5",
+"d1",
+"w2"
+],
+"river|f5|0": [
+"w2"
+],
+"river|f5|1": [
+"w2",
+"w3"
+],
+"river|f5|2": [
+"w2",
+"w3"
+],
+"river|x3|0": [
+"x4"
+],
+"river|x3|1": [
+"x4"
+],
+"river|x3|2": [
+"x4"
+],
+"river|w1|0": [
+"w3"
+],
+"river|w1|1": [
+"w3"
+],
+"river|w1|2": [
+"w3"
+],
+"river|w2|0": [
+"w3"
+],
+"river|w2|1": [
+"w3"
+],
+"river|w2|2": [
+"w3"
+],
+"wedding|f1|0": [
+"d1",
+"d2",
+"w2"
+],
+"wedding|f1|1": [
+"d1",
+"d2",
+"w2"
+],
+"wedding|f1|2": [
+"d1",
+"d2",
+"w2"
+],
+"wedding|f2|0": [
+"d1"
+],
+"wedding|f2|1": [
+"d1"
+],
+"wedding|f2|2": [
+"d1"
+],
+"wedding|x1|0": [
+"x3"
+],
+"wedding|x1|1": [
+"x3"
+],
+"wedding|x1|2": [
+"x3"
+],
+"wedding|f3|0": [
+"d3",
+"w1"
+],
+"wedding|f3|1": [
+"d3",
+"w1"
+],
+"wedding|f3|2": [
+"d3"
+],
+"wedding|f4|0": [
+"d2",
+"w2"
+],
+"wedding|f4|1": [
+"d2",
+"w2"
+],
+"wedding|f4|2": [
+"d2",
+"w2"
+],
+"retail|f1|0": [
+"f4",
+"d1",
+"d4",
+"w2"
+],
+"retail|f1|1": [
+"f4",
+"d1",
+"d4",
+"w2"
+],
+"retail|f1|2": [
+"f4",
+"d1",
+"d4",
+"w2"
+],
+"retail|f2|0": [
+"d1",
+"w2"
+],
+"retail|f2|1": [
+"d1",
+"w2"
+],
+"retail|f2|2": [
+"d1",
+"w2"
+],
+"retail|f3|0": [
+"f4",
+"d1",
+"d4",
+"w2"
+],
+"retail|f3|1": [
+"f4",
+"d1",
+"d4",
+"w2"
+],
+"retail|f3|2": [
+"f4",
+"d1",
+"d4",
+"w2"
+],
+"retail|f4|0": [
+"d1",
+"d4",
+"w2"
+],
+"retail|f4|1": [
+"d1",
+"d4",
+"w2"
+],
+"retail|f4|2": [
+"d1",
+"d4",
+"w2"
+],
+"retail|x3|0": [
+"x4"
+],
+"retail|x3|1": [
+"x4"
+],
+"retail|x3|2": [
+"x4"
+],
+"course|f1|0": [
+"d1",
+"d3",
+"w1",
+"w2"
+],
+"course|f1|1": [
+"d1",
+"d3",
+"w1",
+"w2"
+],
+"course|f1|2": [
+"d3",
+"w2"
+],
+"course|f2|0": [
+"d2",
+"d4",
+"w1"
+],
+"course|f2|1": [
+"d2",
+"d4",
+"w1"
+],
+"course|f2|2": [
+"d2",
+"d4",
+"w1"
+],
+"course|x1|0": [
+"x4"
+],
+"course|x1|1": [
+"x4"
+],
+"course|x1|2": [
+"x4"
+],
+"course|f3|0": [
+"d3",
+"w2"
+],
+"course|f3|1": [
+"d3",
+"w2"
+],
+"course|f3|2": [
+"d3",
+"w2"
+],
+"course|f4|0": [
+"d1",
+"w1"
+],
+"course|f4|1": [
+"d1",
+"w1"
+],
+"course|f4|2": [
+"d1",
+"w1"
+],
+"bikelane|f1|0": [
+"d1",
+"d2",
+"w1"
+],
+"bikelane|f1|1": [],
+"bikelane|f1|2": [],
+"bikelane|f2|0": [],
+"bikelane|f2|1": [],
+"bikelane|f2|2": [],
+"bikelane|x1|0": [
+"x4"
+],
+"bikelane|x1|1": [],
+"bikelane|x1|2": [],
+"bikelane|f3|0": [
+"f5",
+"d2",
+"w1"
+],
+"bikelane|f3|1": [
+"f5",
+"d2",
+"w1"
+],
+"bikelane|f3|2": [
+"f5",
+"d2",
+"w1"
+],
+"bikelane|f4|0": [
+"f5",
+"d2",
+"w1"
+],
+"bikelane|f4|1": [
+"f5",
+"d2",
+"w1"
+],
+"bikelane|f4|2": [
+"f5",
+"d2",
+"w1"
+],
+"bikelane|f5|0": [
+"d2",
+"w1"
+],
+"bikelane|f5|1": [
+"d2",
+"w1"
+],
+"bikelane|f5|2": [
+"d2",
+"w1"
+],
+"bikelane|w2|0": [
+"w3"
+],
+"bikelane|w2|1": [
+"w3"
+],
+"bikelane|w2|2": [
+"w3"
+],
+"foodtruck|f1|0": [
+"d1",
+"d3",
+"w1"
+],
+"foodtruck|f1|1": [
+"d1",
+"d3",
+"w1"
+],
+"foodtruck|f1|2": [
+"d1",
+"d3",
+"w1"
+],
+"foodtruck|f2|0": [
+"d2",
+"w2"
+],
+"foodtruck|f2|1": [
+"d2",
+"w2"
+],
+"foodtruck|f2|2": [
+"d2"
+],
+"foodtruck|f3|0": [
+"f5",
+"d2",
+"w2"
+],
+"foodtruck|f3|1": [
+"f5",
+"d2",
+"w2"
+],
+"foodtruck|f3|2": [
+"f5",
+"d2"
+],
+"foodtruck|f4|0": [
+"f5",
+"d2",
+"w2"
+],
+"foodtruck|f4|1": [
+"f5",
+"d2",
+"w2"
+],
+"foodtruck|f4|2": [
+"f5",
+"d2",
+"w2"
+],
+"foodtruck|x2|0": [
+"x3"
+],
+"foodtruck|x2|1": [
+"x3"
+],
+"foodtruck|x2|2": [
+"x3"
+],
+"foodtruck|f5|0": [
+"d2"
+],
+"foodtruck|f5|1": [
+"d2",
+"w2"
+],
+"foodtruck|f5|2": [
+"d2",
+"w2"
+],
+"cloudcost|f1|0": [
+"f5",
+"d1",
+"d3",
+"w1",
+"w2",
+"p1"
+],
+"cloudcost|f1|1": [
+"f5",
+"d1",
+"d3",
+"w1",
+"w2",
+"p1"
+],
+"cloudcost|f1|2": [
+"f5",
+"d1",
+"d3",
+"w1",
+"w2",
+"p1"
+],
+"cloudcost|f2|0": [
+"f6",
+"d2",
+"d3",
+"w1"
+],
+"cloudcost|f2|1": [
+"f6",
+"d2",
+"d3",
+"w1"
+],
+"cloudcost|f2|2": [
+"f6",
+"d2",
+"d3",
+"w1"
+],
+"cloudcost|x1|0": [],
+"cloudcost|x1|1": [],
+"cloudcost|x1|2": [],
+"cloudcost|f3|0": [
+"f6",
+"d2",
+"d3",
+"w1"
+],
+"cloudcost|f3|1": [
+"f6",
+"d2",
+"d3",
+"w1"
+],
+"cloudcost|f3|2": [
+"f6",
+"d2",
+"d3",
+"w1"
+],
+"cloudcost|f4|0": [
+"f5",
+"f6",
+"d2",
+"d3",
+"w1"
+],
+"cloudcost|f4|1": [
+"f5",
+"f6",
+"d3",
+"w1"
+],
+"cloudcost|f4|2": [
+"f5",
+"f6",
+"d1",
+"d2",
+"d3",
+"w1",
+"w2",
+"p1"
+],
+"cloudcost|f5|0": [
+"d1",
+"d3",
+"w1",
+"w2",
+"p1"
+],
+"cloudcost|f5|1": [
+"d1",
+"d3",
+"w1",
+"w2",
+"p1"
+],
+"cloudcost|f5|2": [
+"d1",
+"d3",
+"w1",
+"w2"
+],
+"cloudcost|f6|0": [
+"d2",
+"d3",
+"w1"
+],
+"cloudcost|f6|1": [
+"d2",
+"d3",
+"w1"
+],
+"cloudcost|f6|2": [
+"d2",
+"d3",
+"w1"
+],
+"newsroom|f1|0": [
+"d1",
+"d2",
+"w1",
+"w2",
+"w3"
+],
+"newsroom|f1|1": [
+"d1",
+"d2",
+"w1",
+"w2",
+"w3"
+],
+"newsroom|f1|2": [
+"d1",
+"d2",
+"w1",
+"w2",
+"w3"
+],
+"newsroom|f3|0": [
+"d2",
+"w2"
+],
+"newsroom|f3|1": [
+"d2",
+"w2"
+],
+"newsroom|f3|2": [
+"d2",
+"w2"
+],
+"newsroom|f4|0": [
+"w1",
+"w3"
+],
+"newsroom|f4|1": [
+"w1",
+"w3"
+],
+"newsroom|f4|2": [
+"w1",
+"w3"
+],
+"newsroom|x2|0": [
+"x3"
+],
+"newsroom|x2|1": [
+"x3"
+],
+"newsroom|x2|2": [
+"x3"
+],
+"newsroom|w1|0": [
+"w2",
+"w3"
+],
+"newsroom|w1|1": [
+"w3"
+],
+"newsroom|w1|2": [
+"w2",
+"w3",
+"p1"
+],
+"fitnessapp|f1|0": [
+"d1",
+"d3",
+"w1",
+"w3"
+],
+"fitnessapp|f1|1": [
+"d1",
+"d3",
+"w1",
+"w3"
+],
+"fitnessapp|f1|2": [
+"d1",
+"d3",
+"w1",
+"w3"
+],
+"fitnessapp|f2|0": [
+"d2",
+"w2"
+],
+"fitnessapp|f2|1": [
+"d2",
+"w2"
+],
+"fitnessapp|f2|2": [
+"d2",
+"w2"
+],
+"fitnessapp|f3|0": [
+"d1",
+"d3",
+"w1",
+"w3"
+],
+"fitnessapp|f3|1": [
+"d1",
+"d3",
+"w1",
+"w3"
+],
+"fitnessapp|f3|2": [
+"d1",
+"d3",
+"w1",
+"w3"
+],
+"fitnessapp|f4|0": [
+"d3",
+"w1",
+"w3"
+],
+"fitnessapp|f4|1": [],
+"fitnessapp|f4|2": [
+"d3",
+"w1",
+"w3"
+],
+"fitnessapp|x2|0": [
+"x3"
+],
+"fitnessapp|x2|1": [
+"x3"
+],
+"fitnessapp|x2|2": [
+"x3"
+],
+"fitnessapp|w1|0": [
+"w3"
+],
+"fitnessapp|w1|1": [
+"w3"
+],
+"fitnessapp|w1|2": [
+"w3"
+],
+"warehouse|f1|0": [
+"f5",
+"d1",
+"d2",
+"d3",
+"w1",
+"w2"
+],
+"warehouse|f1|1": [
+"f5",
+"d1",
+"d2",
+"d3",
+"w1",
+"w2"
+],
+"warehouse|f1|2": [
+"f5",
+"d1",
+"d2",
+"d3",
+"w1",
+"w2"
+],
+"warehouse|f2|0": [],
+"warehouse|f2|1": [],
+"warehouse|f2|2": [],
+"warehouse|x1|0": [
+"x3"
+],
+"warehouse|x1|1": [
+"x3"
+],
+"warehouse|x1|2": [
+"x3"
+],
+"warehouse|f3|0": [
+"d1",
+"d2",
+"d3",
+"w1",
+"w2"
+],
+"warehouse|f3|1": [
+"d1",
+"d2",
+"d3",
+"w1",
+"w2"
+],
+"warehouse|f3|2": [
+"d1",
+"d3",
+"w1",
+"w2"
+],
+"warehouse|f4|0": [
+"f5",
+"d1",
+"d2",
+"d3",
+"w1",
+"w2"
+],
+"warehouse|f4|1": [
+"f5",
+"d1",
+"d2",
+"d3",
+"w1",
+"w2"
+],
+"warehouse|f4|2": [
+"f5",
+"d1",
+"d2",
+"d3",
+"w1",
+"w2"
+],
+"warehouse|f5|0": [
+"d1",
+"d2",
+"d3",
+"w1",
+"w2"
+],
+"warehouse|f5|1": [
+"d1",
+"w1"
+],
+"warehouse|f5|2": [
+"d1",
+"d2",
+"d3",
+"w1",
+"w2"
+],
+"renovation|f1|0": [
+"f4",
+"d1",
+"w2"
+],
+"renovation|f1|1": [
+"f4",
+"d1",
+"w2"
+],
+"renovation|f1|2": [
+"f4",
+"d1",
+"w2"
+],
+"renovation|f2|0": [
+"f4",
+"d1",
+"w2"
+],
+"renovation|f2|1": [
+"f4",
+"d1",
+"w2"
+],
+"renovation|f2|2": [
+"f4",
+"d1",
+"w2"
+],
+"renovation|f3|0": [
+"d2"
+],
+"renovation|f3|1": [
+"d2"
+],
+"renovation|f3|2": [
+"d2"
+],
+"renovation|f4|0": [
+"d1",
+"w2"
+],
+"renovation|f4|1": [
+"d1",
+"w2"
+],
+"renovation|f4|2": [
+"d1",
+"w2"
+],
+"renovation|x3|0": [
+"x4"
+],
+"renovation|x3|1": [
+"x4"
+],
+"renovation|x3|2": [
+"x4"
+],
+"claims|f1|0": [
+"d2",
+"d3",
+"w1"
+],
+"claims|f1|1": [
+"d2",
+"d3",
+"w1"
+],
+"claims|f1|2": [
+"d2",
+"d3",
+"w1"
+],
+"claims|f2|0": [
+"f4",
+"d1",
+"d3",
+"w1",
+"w2",
+"p1"
+],
+"claims|f2|1": [
+"d1",
+"d3",
+"w1",
+"w2",
+"p1"
+],
+"claims|f2|2": [
+"d1",
+"d3",
+"w1",
+"w2"
+],
+"claims|x1|0": [
+"x3"
+],
+"claims|x1|1": [
+"x3"
+],
+"claims|x1|2": [
+"x3"
+],
+"claims|f3|0": [
+"f4",
+"d1",
+"d3",
+"w1",
+"w2"
+],
+"claims|f3|1": [
+"f4",
+"d1",
+"w2"
+],
+"claims|f3|2": [
+"f4",
+"d1",
+"d3",
+"w1",
+"w2"
+],
+"claims|f4|0": [
+"d1",
+"d3",
+"w1",
+"w2"
+],
+"claims|f4|1": [
+"d1",
+"d3",
+"w1",
+"w2"
+],
+"claims|f4|2": [
+"d1",
+"d3",
+"w1",
+"w2"
+],
+"claims|f5|0": [
+"d2",
+"d3",
+"w1"
+],
+"claims|f5|1": [
+"d2",
+"d3",
+"w1"
+],
+"claims|f5|2": [
+"d2",
+"d3",
+"w1"
+],
+"claims|f6|0": [
+"d1",
+"d3",
+"w1",
+"w2",
+"p1"
+],
+"claims|f6|1": [
+"d1",
+"d3",
+"w1",
+"w2",
+"p1"
+],
+"claims|f6|2": [
+"d1",
+"d3",
+"w1",
+"w2",
+"p1"
+],
+"mlpaper|f1|0": [
+"d3",
+"w2",
+"w3"
+],
+"mlpaper|f1|1": [
+"d3",
+"w2",
+"w3"
+],
+"mlpaper|f1|2": [
+"d3",
+"w2",
+"w3"
+],
+"mlpaper|f2|0": [
+"f5",
+"d1",
+"w1"
+],
+"mlpaper|f2|1": [
+"f5",
+"d1",
+"w1"
+],
+"mlpaper|f2|2": [
+"f5",
+"d1",
+"w1"
+],
+"mlpaper|f3|0": [
+"f5",
+"d1",
+"w1",
+"w2",
+"w3"
+],
+"mlpaper|f3|1": [
+"f5",
+"d1",
+"w1",
+"w2",
+"w3"
+],
+"mlpaper|f3|2": [
+"f5",
+"d1",
+"w1",
+"w2",
+"w3"
+],
+"mlpaper|f4|0": [
+"d2"
+],
+"mlpaper|f4|1": [
+"d2"
+],
+"mlpaper|f4|2": [
+"d2"
+],
+"mlpaper|f5|0": [
+"d1",
+"w1"
+],
+"mlpaper|f5|1": [
+"d1",
+"w1"
+],
+"mlpaper|f5|2": [
+"d1",
+"w1"
+],
+"mlpaper|x3|0": [
+"x4"
+],
+"mlpaper|x3|1": [
+"x4"
+],
+"mlpaper|x3|2": [
+"x4"
+],
+"mlpaper|w2|0": [
+"w3"
+],
+"mlpaper|w2|1": [
+"w3"
+],
+"mlpaper|w2|2": [
+"w3"
+],
+"litreview|f1|0": [
+"f5",
+"d1",
+"w1",
+"w3"
+],
+"litreview|f1|1": [
+"f5",
+"d1",
+"w1",
+"w3"
+],
+"litreview|f1|2": [
+"f5",
+"d1",
+"w1",
+"w3"
+],
+"litreview|f2|0": [
+"f5",
+"d1",
+"w1",
+"w3"
+],
+"litreview|f2|1": [
+"f5",
+"d1",
+"w1",
+"w3"
+],
+"litreview|f2|2": [
+"f5",
+"d1",
+"w1",
+"w3"
+],
+"litreview|f3|0": [
+"w2",
+"w3"
+],
+"litreview|f3|1": [
+"w2",
+"w3"
+],
+"litreview|f3|2": [
+"w2",
+"w3"
+],
+"litreview|f4|0": [
+"d2",
+"w2",
+"w3"
+],
+"litreview|f4|1": [
+"d2",
+"w2",
+"w3"
+],
+"litreview|f4|2": [
+"d2",
+"w2",
+"w3"
+],
+"litreview|f5|0": [
+"d1",
+"w1",
+"w3"
+],
+"litreview|f5|1": [
+"d1",
+"w1",
+"w3"
+],
+"litreview|f5|2": [
+"d1",
+"w1",
+"w3"
+],
+"litreview|x2|0": [
+"x4"
+],
+"litreview|x2|1": [
+"x4"
+],
+"litreview|x2|2": [
+"x4"
+],
+"litreview|w1|0": [
+"w3"
+],
+"litreview|w1|1": [
+"w3"
+],
+"litreview|w1|2": [
+"w3"
+],
+"litreview|w2|0": [
+"w3"
+],
+"litreview|w2|1": [
+"w3"
+],
+"litreview|w2|2": [
+"w3"
+]
+}

@@ -183,7 +183,7 @@ def check_and_record(memory, agent, fact_id, method, checker, document=None):
     return {"verdict": verdict, "recorded": True, **out}
 
 
-# --- chat: one user message through one agent ---
+# Chat: one user message through one agent
 
 CHAT_MODEL = MODEL
 MAX_ROUNDS = 6           # model replies per user message; a looping model is cut off here
@@ -577,7 +577,7 @@ def _text(content):
     return "".join(b.text for b in content if b.type == "text").strip()
 
 
-# --- a stand-in for the API client, for tests ($0) ---
+# A stand-in for the API client, for tests ($0)
 
 class MockLLM:
     """Acts like anthropic.Anthropic() for chat_turn: messages.create() returns the next

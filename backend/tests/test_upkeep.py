@@ -27,7 +27,7 @@ def ids(facts):
     return [f["id"] for f in facts]
 
 
-# --- copies are caught when saving ---
+# Copies are caught when saving
 
 def test_a_copy_under_another_entity_is_caught(deepak):
     first = deepak.call("remember", {"text": "Deepak works with Google at the New Delhi office",
@@ -58,7 +58,7 @@ def test_another_users_private_facts_are_never_shown_as_similar(deepak, priya):
     assert "id" in out  # Priya can't see Deepak's private note, so it is no copy for her
 
 
-# --- web checks: share public facts, dispute other users' facts ---
+# Web checks: share public facts, dispute other users' facts
 
 def test_a_supported_outside_world_fact_is_shared_but_facts_about_the_user_never(deepak, priya):
     acme = deepak.call("remember", {"text": "Acme has 500 employees", "entity": "org:acme"})["id"]
@@ -106,7 +106,7 @@ def test_a_later_supported_check_clears_a_dispute(deepak, priya):
     assert deepak.memory.recall(priya.agent, "org:acme")[0]["standing"] == "verified"
 
 
-# --- flagged work: shown at the start of a turn, closed when redone ---
+# Flagged work: shown at the start of a turn, closed when redone
 
 def test_flagged_work_is_listed_for_the_team_and_a_redo_closes_it(mem):
     r = AgentTools.open(mem, "Researcher", owner="Deepak")

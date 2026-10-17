@@ -98,7 +98,7 @@ class Memory:
         self.name = graph
         self.g = db.select_graph(graph)
 
-    # --- admin ---
+    # Admin
 
     def setup(self):
         """Create the id indexes and the full-text indexes on message and fact text. Safe to call repeatedly."""
@@ -116,7 +116,7 @@ class Memory:
         if self.name in self.db.list_graphs():
             self.g.delete()
 
-    # --- agents and sessions ---
+    # Agents and sessions
 
     def register_agent(self, name, owner=None):
         """Create (or find) an agent. With an owner, the id includes it (agent:sam-researcher), so
@@ -176,7 +176,7 @@ class Memory:
             raise MemoryGraphError(f"unknown agent {agent!r}")
         return record
 
-    # --- visibility and source checks ---
+    # Visibility and source checks
 
     def _require_visible(self, agent, ids):
         """Raise unless every id is a fact/decision this agent may see."""
@@ -208,7 +208,7 @@ class Memory:
                 f"only the author (or the author's other agents) can change {item_id}; "
                 f"{agent} can write its own fact instead")
 
-    # --- write ---
+    # Write
 
     def remember(self, agent, session, text, entity, entity_name=None, entity_type="thing",
                  confidence=0.5, derived_from=(), valid_from=None, from_messages=(), source="agent",
@@ -275,7 +275,7 @@ class Memory:
             raise MemoryGraphError(f"cannot publish {fact_id}: built on private {sorted(blockers)}; publish those first")
         self.g.query(queries.PUBLISH, {"agent": agent, "id": fact_id})
 
-    # --- conversation history (episodic memory) ---
+    # Conversation history (episodic memory)
 
     def _require_messages(self, agent, ids):
         """Return the distinct message ids, raising unless this agent may read every one."""
@@ -328,7 +328,7 @@ class Memory:
         return [{"id": r[0], "role": r[1], "agent": r[2], "text": r[3], "at": r[4], "session": r[5],
                  "score": r[6]} for r in rows]
 
-    # --- read views for the UI ---
+    # Read views for the UI
 
     def agents(self):
         """Every agent in this org, with its owner and record (claims, mistakes, accuracy)."""
@@ -382,7 +382,7 @@ class Memory:
         return [{"item": r[0], "message": r[1], "role": r[2], "seq": r[4], "session": r[5],
                  "text": r[3] if r[1] in readable else None} for r in rows]
 
-    # --- procedures (procedural memory) ---
+    # Procedures (procedural memory)
 
     @staticmethod
     def _check_steps(name, steps):
@@ -579,7 +579,7 @@ class Memory:
             "agents": sorted(set(authors) | set(recipients)),
         }
 
-    # --- read ---
+    # Read
 
     def recall(self, agent, entity, as_of=None):
         """Active facts about an entity this agent may see, each with the ids it was built on.
@@ -675,7 +675,7 @@ class Memory:
             "author": r[5], "kind": r[6].lower(),
         } for r in rows]
 
-    # --- automatic upkeep: what an agent should look at without being asked ---
+    # Automatic upkeep: what an agent should look at without being asked
 
     def similar_facts(self, agent, text, entities, limit=10):
         """Active facts this agent may see that look like the same claim as `text`: about one of

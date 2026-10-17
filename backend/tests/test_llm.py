@@ -42,7 +42,7 @@ def doc():
                                Passage("hr.pdf p.2", "Unrelated text about parking.")])
 
 
-# --- web guards ---
+# Web guards
 
 def test_web_supported_with_real_sources():
     c = HaikuChecker(FakeClient(web_response(answer())))
@@ -75,7 +75,7 @@ def test_web_cap_stops_further_checks():
     assert len(client.calls) == 1
 
 
-# --- doc guards ---
+# Doc guards
 
 def test_doc_supported_when_snippet_is_in_the_document():
     c = HaikuChecker(FakeClient(text_response(answer(sources=["hr.pdf p.1"], snippet="acme has 500 employees"))))
@@ -108,7 +108,7 @@ def test_doc_with_no_related_passage_makes_no_api_call(monkeypatch):
     assert HaikuChecker(client).check("x", "doc", doc()).result == "unclear" and client.calls == []
 
 
-# --- parsing ---
+# Parsing
 
 @pytest.mark.parametrize("text", ["not json", "", "{}", '{"result": "true"}', '{"result": 5}', "[1]"])
 def test_malformed_answers_are_unclear(text):
@@ -128,7 +128,7 @@ def test_bad_arguments():
         HaikuChecker(FakeClient()).check("x", "doc")
 
 
-# --- glue: check_and_record ---
+# Glue: check_and_record
 
 def fact_and_checker(team, verdict):
     mem, r, sr, p, sp = team

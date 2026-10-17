@@ -38,13 +38,13 @@ def recall(me):
     return {r[0]: sorted(r[2]) for r in rows(queries.RECALL, {"entity": "org:acme", "me": me})}
 
 
-# --- recall (baseline): current Acme facts, with lineage attached ---
+# Recall (baseline): current Acme facts, with lineage attached
 base = recall("agent:researcher")
 print("recall baseline:", base)
 assert sorted(base) == ["fact:1", "fact:2", "fact:4"], base
 assert base["fact:1"] == [] and base["fact:2"] == ["fact:1"], base
 
-# --- remember: Planner writes a private fact derived from fact:2 ---
+# Remember: Planner writes a private fact derived from fact:2
 res = g.query(queries.REMEMBER, {
     "agent": "agent:planner", "session": "sess:2", "entity": "org:acme",
     "entity_name": "Acme Corp", "entity_type": "org", "id": "fact:5",
@@ -68,7 +68,7 @@ bad = g.query(queries.REMEMBER, {
 })
 assert bad.nodes_created == 0
 
-# --- supersede: HQ moves again (fact:4 Dallas -> fact:6 Houston) ---
+# Supersede: HQ moves again (fact:4 Dallas -> fact:6 Houston)
 sup = {"old_id": "fact:4", "new_id": "fact:6", "text": "Acme HQ is in Houston", "conf": 0.9,
        "agent": "agent:researcher", "session": "sess:4", "at": now, "now": now}
 res = g.query(queries.SUPERSEDE, sup)
@@ -88,7 +88,7 @@ assert old[0] == "superseded" and old[1] == now, old
 again = g.query(queries.SUPERSEDE, {**sup, "new_id": "fact:7"})
 assert again.nodes_created == 0
 
-# --- provenance: why does the Writer's deck (dec:2) exist? ---
+# Provenance: why does the Writer's deck (dec:2) exist?
 prov = rows(queries.PROVENANCE, {"id": "dec:2"})
 print("provenance of dec:2:", [(r[0], r[2], r[3]) for r in prov])
 assert [(r[0], r[2], r[3]) for r in prov] == [

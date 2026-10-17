@@ -4,8 +4,7 @@
 const $ = (id) => document.getElementById(id);
 const state = { user: null, org: null, agents: {}, chat: null, cy: null, busy: false };
 
-// --- small helpers ---
-
+// Small helpers
 function saveLocal(key, value) {          // per-browser convenience only; the page works without it
   try { value === undefined ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch (e) {}
 }
@@ -37,8 +36,7 @@ const roleOf = (agentId) => (agentId || "").split("-").pop();
 const short = (s, n = 60) => (s && s.length > n ? s.slice(0, n - 1) + "…" : s || "");
 const mine = (agentId) => Object.values(state.agents).includes(agentId);
 
-// --- entry ---
-
+// Entry
 async function showEntry() {
   const { orgs } = await api("GET", "/api/orgs");
   $("entry-org").replaceChildren(...orgs.map((o) => el("option", { value: o }, o)));
@@ -72,8 +70,7 @@ async function enter() {
   await openChat(state.chat);
 }
 
-// --- chats ---
-
+// Chats
 async function renderChats(chats) {
   chats = chats || (await api("GET", "/api/chats")).chats;
   $("chats").replaceChildren(...chats.map((c) => el("li", {
@@ -184,8 +181,7 @@ $("input").addEventListener("keydown", (e) => {
 
 function scrollDown() { $("messages").scrollTop = $("messages").scrollHeight; }
 
-// --- side panels ---
-
+// Side panels
 async function refreshPanels() {
   const [flagged, status] = await Promise.all([api("GET", "/api/flagged"), api("GET", "/api/status")]);
 
@@ -200,8 +196,7 @@ async function refreshPanels() {
   await drawGraph();
 }
 
-// --- graph ---
-
+// Graph
 const COLORS = { active: "#2f9e44", flagged: "#e03131", retracted: "#868e96", superseded: "#ced4da" };
 const SHAPES = { Fact: "ellipse", Decision: "diamond", Procedure: "hexagon", Entity: "round-rectangle",
   Agent: "triangle", Message: "tag" };
@@ -267,8 +262,8 @@ function accuracyLabel(a) {
   return (a.accuracy < 0.75 ? "⚠ " : "") + Math.round(a.accuracy * 100) + "%";
 }
 
-// --- inspector: read-only buttons, run as the user's own Researcher. Changes to memory are made
-// by the agents in the chat, never from here. ---
+// Inspector: read-only buttons, run as the user's own Researcher. Changes to memory are made
+// by the agents in the chat, never from here.
 
 async function tool(name, args) {
   return api("POST", `/api/tools/${name}`, { role: "researcher", chat: state.chat, args });
@@ -319,8 +314,7 @@ function highlight(ids) {
   cy.edges().filter((e) => e.data("type") === "DERIVED_FROM" && set.has(e.data("source")) && set.has(e.data("target"))).addClass("hit");
 }
 
-// --- start ---
-
+// Start
 state.user = recallLocal("user");
 state.org = recallLocal("org");
 (state.user && state.org ? enter().catch(showEntry) : showEntry());

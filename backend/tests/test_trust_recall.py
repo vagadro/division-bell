@@ -33,7 +33,7 @@ def row(mem, agent, fact, entity="org:acme"):
     return {f["id"]: f for f in mem.recall(agent, entity)}[fact]
 
 
-# --- accuracy: a rate, not a counter ---
+# Accuracy: a rate, not a counter
 
 def test_a_new_agent_starts_at_full_accuracy(team):
     mem, r, sr, p, sp = team
@@ -58,7 +58,7 @@ def test_superseded_facts_are_not_mistakes(team):
     assert mem.records([r])[r]["mistakes"] == 0
 
 
-# --- standing: the fact first, the author only as a fallback ---
+# Standing: the fact first, the author only as a fallback
 
 def test_recall_returns_source_standing_and_author_accuracy(team):
     mem, r, sr, p, sp = team
@@ -133,7 +133,7 @@ def test_recall_as_of_also_reports_standing(team):
     assert got["id"] == f and got["standing"] == "doubtful"
 
 
-# --- checks need evidence and a fact the checker may see ---
+# Checks need evidence and a fact the checker may see
 
 def test_evidence_and_valid_values_are_required(team):
     mem, r, sr, p, sp = team

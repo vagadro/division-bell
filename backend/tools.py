@@ -65,7 +65,7 @@ class AgentTools:
         agent = memory.register_agent(name, owner=owner)
         return cls(memory, agent, memory.start_session(agent), checker, docs_dir)
 
-    # --- facts ---
+    # Facts
 
     def remember(self, text: Text, entity: Entity,
                  entity_name: Annotated[str | None, Field(description="readable name of the entity")] = None,
@@ -215,7 +215,7 @@ class AgentTools:
         self.memory.confirm(self.agent, item_id)
         return {"confirmed": item_id}
 
-    # --- lineage ---
+    # Lineage
 
     def decide(self, text: Text, derived_from: Sources,
                replaces: Annotated[list[str], Field(description=(
@@ -240,7 +240,7 @@ class AgentTools:
         then confirm it or redo it)."""
         return {"items": self.memory.flagged(self.agent)}
 
-    # --- coordination ---
+    # Coordination
 
     def handoff(self, recipient: Annotated[str, Field(description="agent id, like agent:sam-planner")],
                 item_ids: Annotated[list[str], Field(min_length=1)],
@@ -273,7 +273,7 @@ class AgentTools:
         """Saved how-tos about an entity or task type that you may see."""
         return {"procedures": self.memory.recall_procedures(self.agent, entity)}
 
-    # --- evidence ---
+    # Evidence
 
     def verify_fact(self, fact_id: FactId,
                     method: Annotated[str, Field(pattern="^(web|doc)$",
@@ -316,7 +316,7 @@ class AgentTools:
             raise DocumentError(f"{name!r} is outside the documents folder")
         return path
 
-    # --- the two ways to use the list ---
+    # The two ways to use the list
 
     def call(self, name, args=None):
         """Run one tool by name. Always returns a dict; failures become {"error": ...}."""

@@ -87,7 +87,7 @@ def _words(text):
     return {w for w in re.findall(r"[a-z0-9]{3,}", text.lower()) if w not in _STOPWORDS}
 
 
-# --- readers: one per file type, each returns a list of Passage ---
+# Readers: one per file type, each returns a list of Passage
 
 def _read_text(path):
     text = path.read_text(encoding="utf-8", errors="replace")

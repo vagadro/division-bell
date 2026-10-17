@@ -14,7 +14,7 @@ def team(mem):
     return mem, chat, {a.rsplit("-", 1)[-1]: AgentTools(mem, a, chat) for a in (r, p, w)}
 
 
-# --- one session shared by the user's agents ---
+# One session shared by the user's agents
 
 def test_the_users_agents_share_one_chat(team):
     mem, chat, agents = team
@@ -43,7 +43,7 @@ def test_an_agent_sees_its_teammates_replies_labelled(team):
     assert sent == [("user", "hi"), ("assistant", "[researcher] Found it."), ("user", "now plan")]
 
 
-# --- automatic handoffs (team_turn) ---
+# Automatic handoffs (team_turn)
 
 @pytest.fixture
 def fact(team):
@@ -107,7 +107,7 @@ def test_the_spend_cap_covers_the_whole_chain(team, fact):
     assert out["stop"] == "spend_cap" and len(out["steps"]) == 1 and "spending cap" in out["reply"]
 
 
-# --- search_history: earlier chats, full-text index ---
+# Search_history: earlier chats, full-text index
 
 @pytest.fixture
 def earlier_chat(team):

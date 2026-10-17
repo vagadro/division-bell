@@ -144,7 +144,7 @@ SET f.visibility = 'shared'
 RETURN f.id
 """
 
-# --- lineage ---
+# Lineage
 
 # Which of these ids can this agent build on? They must be active facts/decisions it can see.
 # Params: me, ids
@@ -286,7 +286,7 @@ WHERE author.id = me.id OR author.owner = me.owner
 RETURN x.id
 """
 
-# --- handoffs ---
+# Handoffs
 
 # handoff: the sender passes items to the recipient. One atomic query, so an item retracted a
 # moment ago can't slip through. Every item must be an active or flagged (a redo request)
@@ -317,7 +317,7 @@ RETURN h.id AS id, s.id AS sender, h.note AS note, h.at AS at,
 ORDER BY at DESC, id
 """
 
-# --- conversation history (episodic memory) ---
+# Conversation history (episodic memory)
 # A Session is the episode; Message nodes hang off it, in order (seq). Messages are a record of
 # what was said, so they are never wrong or retracted: facts link to them with EXTRACTED_FROM,
 # not DERIVED_FROM, and blast radius never follows that edge. Only the owning user's agents can
@@ -381,7 +381,7 @@ ORDER BY score DESC, node.at DESC
 LIMIT $limit
 """
 
-# --- read views for the UI (change nothing) ---
+# Read views for the UI (change nothing)
 
 # Every agent in this org's graph. Agents are not private. Params: none
 LIST_AGENTS = """
@@ -460,7 +460,7 @@ RETURN src.id, m.id, m.role, m.text, m.seq, s.id
 ORDER BY src.id, m.seq
 """
 
-# --- procedures (procedural memory) ---
+# Procedures (procedural memory)
 # A Procedure is a saved how-to: a name and an ordered list of steps (a property, not Step nodes),
 # ABOUT an entity (like a task or an organisation) so it can be found. It may be derived from
 # facts/decisions, so retracting or superseding a source flags it (RETRACT/SUPERSEDE follow
@@ -534,7 +534,7 @@ RETURN p.id, p.name, p.steps, collect(DISTINCT src.id)
 ORDER BY p.id
 """
 
-# --- verification ---
+# Verification
 
 # verify: record the outcome of an evidence check (web or doc) on an active fact this agent may
 # see. Writes a VERIFIED edge for every outcome and changes nothing else: evidence is about the
@@ -555,7 +555,7 @@ RETURN f.id
 """
 
 
-# --- automatic upkeep ---
+# Automatic upkeep
 
 # Candidates for "is this new fact a copy of one we have?": active facts this agent may see,
 # (1) about any of the new fact's entities, or (2) matching its words in the full-text index under

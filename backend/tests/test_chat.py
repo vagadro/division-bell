@@ -32,7 +32,7 @@ def tool_results(request):
             for b in m["content"] if isinstance(b, dict) and b.get("type") == "tool_result"]
 
 
-# --- what a turn saves ---
+# What a turn saves
 
 def test_a_plain_answer_saves_both_messages(deepak):
     out, client = turn(deepak, [MockLLM.reply("Hello!")])
@@ -70,7 +70,7 @@ def test_a_fact_saved_in_a_turn_is_linked_to_the_user_message(deepak, ravi):
     assert deepak.current_message is None                                   # cleared after the turn
 
 
-# --- the loop ---
+# The loop
 
 def test_all_tool_results_go_back_and_errors_are_marked(deepak):
     script = [MockLLM.tool_call("publish", {"item_id": "fact:nope"}), MockLLM.reply("That failed.")]
@@ -122,7 +122,7 @@ def test_only_the_researcher_gets_web_search(mem, deepak):
     assert "web_search" not in [t["name"] for t in p.requests[0]["tools"]]
 
 
-# --- web facts ---
+# Web facts
 
 def test_a_web_fact_must_cite_a_url_the_search_returned(deepak, ravi):
     fact = {"text": "The capital of India is New Delhi", "entity": "country:india"}
@@ -146,7 +146,7 @@ def test_search_urls_do_not_carry_over_to_the_next_turn(deepak):
     assert "error" in out["tool_calls"][0]["result"]
 
 
-# --- documents ---
+# Documents
 
 def test_read_document_returns_labelled_passages(deepak, tmp_path):
     (tmp_path / "notes.txt").write_text("Budget for 2026 is 5 lakh.")
@@ -158,7 +158,7 @@ def test_read_document_stays_inside_the_documents_folder(deepak):
     assert "error" in deepak.call("read_document", {"document": "../secret.txt"})
 
 
-# --- sources: web facts are verified claims, user facts are the user's word ---
+# Sources: web facts are verified claims, user facts are the user's word
 
 def test_facts_carry_their_source(deepak):
     script = [MockLLM.web_search([URL]),
@@ -174,7 +174,7 @@ def test_facts_carry_their_source(deepak):
     assert deepak.memory.records([deepak.agent])[deepak.agent]["claims"] == 1   # only the web fact
 
 
-# --- what the agent did is recorded for the page, not said in the reply ---
+# What the agent did is recorded for the page, not said in the reply
 
 def test_what_the_agent_did_is_recorded_and_replayed_as_one_line(deepak):
     import json
