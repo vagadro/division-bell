@@ -7,7 +7,7 @@ When a fact is retracted, the bell rings for everything built on it.
 Built for [Graph Hacks: Context for AI Agents](https://www.wemakedevs.org/hackathons/falkordb) (WeMakeDevs x FalkorDB).
 **Track 02: Agent Memory and Coordination.** FalkorDB is the only database.
 
-Demo video: _link to be added_
+Demo video: https://www.youtube.com/watch?v=hmsadb11ja0
 
 ## The problem
 
@@ -82,6 +82,10 @@ An `ANTHROPIC_API_KEY` in a `.env` file next to `docker-compose.yml` works as a 
 ## Graph data model
 
 One graph per organisation, so there is no tenant node. Every node has a stable string `id` such as `fact:1` or `agent:sam-researcher`.
+
+![The memory graph after a real run: facts, a decision and a drafted email linked by DERIVED_FROM](assets/memory-graph.png)
+
+*The page's graph panel after one chat. Circles are facts, the diamond is a decision, the hexagon a procedure, triangles are agents, and the rounded squares are entities. Green is active, grey is retracted or superseded, and a dashed border means private. The arrows labelled `DERIVED_FROM` are the lineage that blast radius follows.*
 
 | Node | Main properties |
 |---|---|
