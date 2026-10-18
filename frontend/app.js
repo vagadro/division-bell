@@ -234,6 +234,42 @@ $("close-graph").addEventListener("click", () => setGraphOpen(false));
     saved ? saved === "closed" : window.matchMedia("(max-width: 900px)").matches);
 }
 
+// The handle on the graph panel's left edge sets its width. The width is clamped so neither the chat
+// nor the graph can be squeezed out, and is remembered in this browser.
+const GRAPH_MIN = 280;
+const CHAT_MIN = 360 + 220;   // the chat column plus the left panel
+function setGraphWidth(px) {
+  const max = Math.max(GRAPH_MIN, window.innerWidth - CHAT_MIN);
+  $("main").style.setProperty("--graph-w", `${Math.round(Math.min(max, Math.max(GRAPH_MIN, px)))}px`);
+  if (state.cy) state.cy.resize();
+}
+{
+  const saved = parseInt(recallLocal("graph-width"), 10);
+  if (saved) setGraphWidth(saved);
+  const handle = $("resize-graph");
+  handle.addEventListener("pointerdown", (ev) => {
+    handle.setPointerCapture(ev.pointerId);
+    handle.classList.add("dragging");
+    const move = (e) => setGraphWidth(window.innerWidth - e.clientX);
+    const stop = () => {
+      handle.classList.remove("dragging");
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", stop);
+      handle.removeEventListener("pointercancel", stop);
+      saveLocal("graph-width", parseInt($("main").style.getPropertyValue("--graph-w"), 10));
+      if (state.cy) state.cy.fit(undefined, 20);
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", stop);
+    handle.addEventListener("pointercancel", stop);
+  });
+  handle.addEventListener("dblclick", () => {   // back to the default width
+    $("main").style.removeProperty("--graph-w");
+    saveLocal("graph-width", undefined);
+    if (state.cy) { state.cy.resize(); state.cy.fit(undefined, 20); }
+  });
+}
+
 async function drawGraph() {
   if (!graphOpen()) return;
   const view = await api("GET", "/api/graph");

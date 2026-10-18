@@ -19,12 +19,14 @@ button.danger { background: var(--flagged); border-color: var(--flagged); }
 
 header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .spacer { flex: 1; }
-/* the chat is the main column; the graph gets about a third of the width, never more than 520px */
-main { display: grid; grid-template-columns: 220px minmax(360px, 1fr) clamp(320px, 30vw, 520px); height: calc(100vh - 49px); }
+/* the chat is the main column; the graph gets about a third of the width by default, and the
+   handle on its left edge changes that (--graph-w is set from app.js once the user drags it) */
+main { --graph-w: clamp(320px, 30vw, 520px); display: grid; grid-template-columns: 220px minmax(360px, 1fr) var(--graph-w); height: calc(100vh - 49px); }
 main.graph-closed { grid-template-columns: 220px minmax(360px, 1fr) 36px; }
 @media (max-width: 900px) {
   main, main.graph-closed { grid-template-columns: 1fr; height: auto; }
   #graph { height: 380px; }
+  #resize-graph { display: none; }
   #middle { height: 70vh; }
 }
 
@@ -63,7 +65,11 @@ details.steps summary { cursor: pointer; color: var(--muted); }
 #send-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); background: var(--panel); }
 #input { flex: 1; resize: none; font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 6px; }
 
-#right { display: flex; flex-direction: column; background: var(--panel); }
+#right { position: relative; display: flex; flex-direction: column; background: var(--panel); }
+/* drag handle on the left edge of the graph panel */
+#resize-graph { position: absolute; left: -3px; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 5; touch-action: none; }
+#resize-graph:hover, #resize-graph.dragging { background: var(--line); }
+main.graph-closed #resize-graph { display: none; }
 #open-graph { display: none; }
 /* collapsed: only the "Memory graph" button is left, as a vertical strip (a bar on small screens) */
 main.graph-closed #right > :not(#open-graph) { display: none; }
