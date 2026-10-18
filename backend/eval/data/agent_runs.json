@@ -1,0 +1,2473 @@
+{
+ "cost": 0.12725705999999998,
+ "runs": [
+  {
+   "name": "bakery",
+   "items": [
+    {
+     "id": "fact:6e4a6d02",
+     "kind": "Fact",
+     "text": "Hannah runs a small bakery in Leeds that sells about 220 sourdough loaves a week.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:53e08b8e",
+     "kind": "Fact",
+     "text": "Flour price has risen to 1.15 pounds per kilo for Hannah's bakery in Leeds (as reported by the user).",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "dec:8482c0d8",
+     "kind": "Decision",
+     "text": "Weekly baking schedule for the Leeds sourdough bakery: 8 oven batches of 30 loaves (240 loaves capacity against about 220 sold). Monday 1 batch, Tuesday 1, Wednesday 1, Thursday 1, Friday 2, Saturday 2. Friday and Saturday get the double batches to cover the weekend peak; the 20 spare loaves act as buffer for waste or growth.",
+     "source": null,
+     "status": "active"
+    },
+    {
+     "id": "fact:aa8e6022",
+     "kind": "Fact",
+     "text": "Draft customer note to Leeds sourdough bakery's regular customers about flour rising to \u00a31.15 per kilo and a small loaf price rise, same quality loaves; new loaf price left as a placeholder for Hannah to fill in.",
+     "source": "agent",
+     "status": "active"
+    }
+   ],
+   "edges": [
+    [
+     "dec:8482c0d8",
+     "fact:6e4a6d02"
+    ],
+    [
+     "dec:8482c0d8",
+     "fact:53e08b8e"
+    ],
+    [
+     "fact:aa8e6022",
+     "fact:6e4a6d02"
+    ],
+    [
+     "fact:aa8e6022",
+     "fact:53e08b8e"
+    ]
+   ],
+   "blast": {
+    "fact:6e4a6d02": [
+     "dec:8482c0d8",
+     "fact:aa8e6022"
+    ],
+    "fact:53e08b8e": [
+     "dec:8482c0d8",
+     "fact:aa8e6022"
+    ],
+    "dec:8482c0d8": [],
+    "fact:aa8e6022": []
+   },
+   "steps": [
+    {
+     "role": "researcher",
+     "reply": "Thanks, Hannah. That's useful to have: about 220 loaves a week at 30 per batch means at least 8 oven batches a week (220 \u00f7 30 is about 7.3, so you're rounding up to 8).\n\nOn flour, UK retail prices vary a lot by product. The lowest unit price for flour is \u00a30.47/kg at ASDA, and a strong white bread fl",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Hannah runs a small bakery in Leeds that sells about 220 sourdough loaves a week.",
+        "entity": "user:hannah",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Hannah's bakery oven bakes 30 loaves per batch.",
+        "entity": "user:hannah",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Flour price has risen to 1.15 pounds per kilo for Hannah's bakery in Leeds (as reported by the user).",
+        "entity": "user:hannah",
+        "source": "user",
+        "confidence": 0.6
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "researcher",
+     "reply": "I've passed this to our planner, who will draw up the weekly baking schedule and then hand the customer note to our writer for a draft.\n\nFor the schedule, the numbers to plan around are about 220 loaves a week and 30 loaves per oven batch. That needs 8 batches, which gives you 240 loaves of capacity",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:hannah"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:hannah"
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Hannah's bakery oven bakes 30 sourdough loaves per batch.",
+        "entity": "user:hannah",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:hannah-planner",
+        "item_ids": [
+         "fact:6e4a6d02",
+         "fact:53e08b8e"
+        ],
+        "note": "Hannah needs (1) a weekly baking schedule for her Leeds sourdough bakery: about 220 loaves a week, oven bakes 30 loaves per batch (so 8 batches covers 240, leaving 20 spare for growth or waste), and (2) a short note for regular customers about the flour price rise to 1.15 pounds per kilo. Plan the schedule first, then pass the customer-note brief to the Writer for a draft. Keep it practical and short."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "planner",
+     "reply": "Here's the weekly schedule for about 220 loaves, using 30 per batch:\n\n- **Monday:** 1 batch (30)\n- **Tuesday:** 1 batch (30)\n- **Wednesday:** 1 batch (30)\n- **Thursday:** 1 batch (30)\n- **Friday:** 2 batches (60)\n- **Saturday:** 2 batches (60)\n\nThat's 8 batches and 240 loaves, so you have 20 spare e",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall_procedures",
+       "args": {
+        "entity": "topic:production-scheduling"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:hannah"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "fact:6e4a6d02"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "fact:53e08b8e"
+       },
+       "ok": true
+      },
+      {
+       "tool": "decide",
+       "args": {
+        "text": "Weekly baking schedule for the Leeds sourdough bakery: 8 oven batches of 30 loaves (240 loaves capacity against about 220 sold). Monday 1 batch, Tuesday 1, Wednesday 1, Thursday 1, Friday 2, Saturday 2. Friday and Saturday get the double batches to cover the weekend peak; the 20 spare loaves act as buffer for waste or growth.",
+        "derived_from": [
+         "fact:6e4a6d02",
+         "fact:53e08b8e"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:hannah-writer",
+        "item_ids": [
+         "fact:53e08b8e",
+         "fact:6e4a6d02"
+        ],
+        "note": "Please draft a short, friendly note to Hannah's regular customers (Leeds sourdough bakery) explaining that flour has risen to \u00a31.15 per kilo, so prices are going up a little, while they keep the same quality loaves. Keep it brief and warm, and leave the new price amount for Hannah to fill in if she has it."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "writer",
+     "reply": "Here's the draft. I've left the bakery name, new loaf price and start date in brackets for you to fill in.\n\n---\n\nHello from [Bakery name],\n\nWe wanted to let you know about a small change. The price of our flour has risen to \u00a31.15 per kilo, and we've had to adjust our loaf prices to match. The new pr",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Draft customer note to Leeds sourdough bakery's regular customers about flour rising to \u00a31.15 per kilo and a small loaf price rise, same quality loaves; new loaf price left as a placeholder for Hannah to fill in.",
+        "entity": "doc:customer-note-flour-price",
+        "entity_name": "Customer note: flour price rise",
+        "source": "agent",
+        "confidence": 0.8,
+        "derived_from": [
+         "fact:53e08b8e",
+         "fact:6e4a6d02"
+        ]
+       },
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "trek",
+   "items": [
+    {
+     "id": "fact:5b820f68",
+     "kind": "Fact",
+     "text": "Tomas is planning a 12-day trek in Nepal in April with 3 friends (4 people total). Each person has a budget of 2,400 USD. The highest point of the route is 5,364 metres.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:87827127",
+     "kind": "Fact",
+     "text": "Typical trekking permit costs in Nepal in 2026 are about 35-40 USD per person for classic treks (Annapurna, Everest, Langtang), with TIMS around 15 USD and national park or conservation permits around 22 USD each. Restricted areas cost far more, e.g. Upper Mustang at 50 USD per day.",
+     "source": "web",
+     "status": "active"
+    },
+    {
+     "id": "fact:fe5d3755",
+     "kind": "Fact",
+     "text": "Since 31 March 2023, foreign trekkers in Nepal must trek with a licensed guide through a registered agency.",
+     "source": "web",
+     "status": "active"
+    },
+    {
+     "id": "fact:f895e478",
+     "kind": "Fact",
+     "text": "Everest Base Camp trek permits for foreign trekkers: Sagarmatha National Park permit NPR 3,000 plus Khumbu Pasang Lhamu Rural Municipality permit NPR 3,000, about NPR 6,000 (roughly US$45) per person in total; TIMS card is not required in the Khumbu. Some other sources list a TIMS card too, so confirm with the agency.",
+     "source": "web",
+     "status": "active"
+    },
+    {
+     "id": "fact:4364c4d5",
+     "kind": "Fact",
+     "text": "A licensed guide on the Everest Base Camp trek costs about USD 25 to 35 per day including food and accommodation; porters cost about USD 15 to 25 per day. Another source gives a guide at USD 25 to 45 per day plus food and lodging.",
+     "source": "web",
+     "status": "active"
+    },
+    {
+     "id": "fact:03f5e132",
+     "kind": "Fact",
+     "text": "Everest Base Camp (South, Nepal) is at 5,364 metres (17,598 ft), so the 5,364 m highest point the user gave matches the Everest Base Camp trek. Kala Patthar (about 5,545 m) is often higher on the route.",
+     "source": "web",
+     "status": "active"
+    },
+    {
+     "id": "dec:214d6122",
+     "kind": "Decision",
+     "text": "Booking order for a 12-day Everest Base Camp trek in April for 4 people (2,400 USD each, 9,600 total), built on the Researcher's facts. Route to be confirmed as Everest Base Camp (5,364 m matches). 1) Contact a registered trekking agency first: licensed guide and permits are mandatory, April is peak season, and a pair shares one guide and one porter (2 guides, 2 porters). Get a firm written quote. 2) Lukla flights (domestic, Kathmandu-Lukla return), booked through the agency, since they fill up in April. 3) International flights to Kathmandu, timed to the agency's start date. 4) Travel insurance covering trekking to about 5,500 m and helicopter evacuation, bought before departure. 5) Gear rental or purchase in Kathmandu. 6) Tips at the end of the trek. Estimated split (USD, ground costs): Permits (NPR 6,000 per person, about 45 each) 180. Guides 2 x 360 (about 30/day x 12 days) 720. Porters 2 x 240 (about 20/day x 12) 480. Lukla return flights 4 x 400 (range 160 to 450 each) 1,600. Insurance 4 x 200 800. Teahouse meals and beds on trail 4 x 360 1,440. Kathmandu hotel and meals 480. Gear rental 600. Tips 500. Nepal visa on arrival about 4 x 30 = 120. Misc (SIM, water treatment, snacks) 300. Subtotal about 7,220 (about 1,805 per person). Buffer about 2,380 (about 595 per person). Not included: international flights to Kathmandu, which must fit within the remaining buffer or be paid separately. Confirm the total with the agency before paying.",
+     "source": null,
+     "status": "active"
+    },
+    {
+     "id": "fact:bdd8787d",
+     "kind": "Fact",
+     "text": "Draft email to the trekking agency about the Everest Base Camp trek (12 days, April, 4 trekkers). Subject: Everest Base Camp trek, April, 4 trekkers: permits, guides and quote request. Body: Hello, we are planning a 12-day trek to Everest Base Camp (highest point 5,364 m) in April with four trekkers. Could you please confirm the route and itinerary? Permits: please confirm the Sagarmatha National Park and Khumbu Pasang Lhamu permits, and whether a TIMS card is needed. Guides and porters: we understand a licensed guide is mandatory. We would like one licensed guide and one porter shared by each pair of trekkers. Please confirm this arrangement. Quote: please send a firm written quote for the whole group, including Lukla return flights, permits, guide and porter fees, accommodation and meals on the trek, and a list of what is excluded. Also, can you help with international flights to Kathmandu, or arrange airport transfers? Our budget is about USD 2,400 per person. Please let us know your earliest reply date so we can book the Lukla flights in time. Thank you, Tomas",
+     "source": "agent",
+     "status": "active"
+    }
+   ],
+   "edges": [
+    [
+     "dec:214d6122",
+     "fact:5b820f68"
+    ],
+    [
+     "dec:214d6122",
+     "fact:fe5d3755"
+    ],
+    [
+     "dec:214d6122",
+     "fact:f895e478"
+    ],
+    [
+     "dec:214d6122",
+     "fact:4364c4d5"
+    ],
+    [
+     "dec:214d6122",
+     "fact:03f5e132"
+    ],
+    [
+     "proc:3f581672",
+     "fact:fe5d3755"
+    ],
+    [
+     "proc:3f581672",
+     "fact:4364c4d5"
+    ],
+    [
+     "fact:bdd8787d",
+     "dec:214d6122"
+    ]
+   ],
+   "blast": {
+    "fact:5b820f68": [
+     "dec:214d6122",
+     "fact:bdd8787d"
+    ],
+    "fact:87827127": [],
+    "fact:fe5d3755": [
+     "dec:214d6122",
+     "proc:3f581672",
+     "fact:bdd8787d"
+    ],
+    "fact:f895e478": [
+     "dec:214d6122",
+     "fact:bdd8787d"
+    ],
+    "fact:4364c4d5": [
+     "dec:214d6122",
+     "proc:3f581672",
+     "fact:bdd8787d"
+    ],
+    "fact:03f5e132": [
+     "dec:214d6122",
+     "fact:bdd8787d"
+    ],
+    "dec:214d6122": [
+     "fact:bdd8787d"
+    ],
+    "fact:bdd8787d": []
+   },
+   "steps": [
+    {
+     "role": "researcher",
+     "reply": "Your budget is comfortable for this. You have 9,600 USD across the group, and the permits are a small part of it.\n\n- **Permits:** For the classic treks (Annapurna, Everest, Langtang) budget roughly $35\u201340 in permits. Those are per person, so about 150 USD for the four of you.\n- **Guide requirement:*",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:tomas"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "country:nepal"
+       },
+       "ok": true
+      },
+      {
+       "tool": "search_history",
+       "args": {
+        "query": "Nepal trek trekking"
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Tomas is planning a 12-day trek in Nepal in April with 3 friends (4 people total). Each person has a budget of 2,400 USD. The highest point of the route is 5,364 metres.",
+        "entity": "user:tomas",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "save_web_fact",
+       "args": {
+        "text": "Typical trekking permit costs in Nepal in 2026 are about 35-40 USD per person for classic treks (Annapurna, Everest, Langtang), with TIMS around 15 USD and national park or conservation permits around 22 USD each. Restricted areas cost far more, e.g. Upper Mustang at 50 USD per day.",
+        "entity": "country:nepal",
+        "entity_name": "Nepal",
+        "sources": [
+         "https://travelhimalayanepal.com/nepal-trekking-permits-cost-2026"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "save_web_fact",
+       "args": {
+        "text": "Since 31 March 2023, foreign trekkers in Nepal must trek with a licensed guide through a registered agency.",
+        "entity": "country:nepal",
+        "entity_name": "Nepal",
+        "sources": [
+         "https://www.spadehimalaya.com/blog/nepal-trekking-permits-guide/"
+        ]
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "researcher",
+     "reply": "Your 5,364 m highest point matches **Everest Base Camp**, so I've planned around that route. The elevation of South Everest Base Camp is 5,364 meters, which is 17,598 feet above sea level. Please tell me if you're considering a different trek.\n\n**What's being prepared for you**\n\nI've passed the deta",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:tomas"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "topic:nepal-trekking-permits"
+       },
+       "ok": true
+      },
+      {
+       "tool": "inbox",
+       "args": {},
+       "ok": true
+      },
+      {
+       "tool": "save_web_fact",
+       "args": {
+        "text": "Everest Base Camp trek permits for foreign trekkers: Sagarmatha National Park permit NPR 3,000 plus Khumbu Pasang Lhamu Rural Municipality permit NPR 3,000, about NPR 6,000 (roughly US$45) per person in total; TIMS card is not required in the Khumbu. Some other sources list a TIMS card too, so confirm with the agency.",
+        "entity": "topic:everest-base-camp-trek",
+        "entity_name": "Everest Base Camp trek",
+        "sources": [
+         "https://travelhimalayanepal.com/permits/everest-base-camp",
+         "https://everestcamptrek.com/how-to-get-everest-base-camp-trek-permits/"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "save_web_fact",
+       "args": {
+        "text": "Since April 2023, national-park trekkers in Nepal must use a licensed guide, with permits arranged through a registered agency (Everest Base Camp included).",
+        "entity": "topic:everest-base-camp-trek",
+        "entity_name": "Everest Base Camp trek",
+        "sources": [
+         "https://travelhimalayanepal.com/permits/everest-base-camp"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "save_web_fact",
+       "args": {
+        "text": "A licensed guide on the Everest Base Camp trek costs about USD 25 to 35 per day including food and accommodation; porters cost about USD 15 to 25 per day. Another source gives a guide at USD 25 to 45 per day plus food and lodging.",
+        "entity": "topic:everest-base-camp-trek",
+        "entity_name": "Everest Base Camp trek",
+        "sources": [
+         "https://abovethehimalaya.com/everest-base-camp-trek-cost/",
+         "https://ebctrails.com/everest-base-camp-trek-cost-2026-updated-guide/"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "save_web_fact",
+       "args": {
+        "text": "Everest Base Camp (South, Nepal) is at 5,364 metres (17,598 ft), so the 5,364 m highest point the user gave matches the Everest Base Camp trek. Kala Patthar (about 5,545 m) is often higher on the route.",
+        "entity": "topic:everest-base-camp-trek",
+        "entity_name": "Everest Base Camp trek",
+        "sources": [
+         "https://en.wikipedia.org/wiki/Everest_base_camps",
+         "https://www.swotahtravel.com/blogs/Everest-Base-Camp-Elevation"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:tomas-planner",
+        "item_ids": [
+         "fact:5b820f68",
+         "fact:f895e478",
+         "fact:4364c4d5",
+         "fact:03f5e132",
+         "fact:fe5d3755"
+        ],
+        "note": "Tomas (4 people, 2,400 USD each = 9,600 total) wants a 12-day trek with a 5,364 m highest point, which matches Everest Base Camp. Please draft (1) what to book first, in order, and (2) how to split the money across the group (permits, guide and porter, flights, insurance, gear, tips, buffer). Note that a licensed guide via a registered agency is mandatory and that a pair can share a guide and porter. Then pass the draft to the Writer to write a short email to the trekking agency asking about permits, guide and porter arrangements, and quotes. Flag that the route should be confirmed as Everest Base Camp."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "planner",
+     "reply": "Here's the plan for your Everest Base Camp trek, assuming the route is EBC since 5,364 m matches it. Please confirm that.\n\n**What to book first, in order**\n1. **Registered trekking agency:** Licensed guides and permits are mandatory, and April is peak season. Ask for a firm written quote.\n2. **Lukla",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall_procedures",
+       "args": {
+        "entity": "topic:trip-planning"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:tomas"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "topic:trekking-nepal"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "topic:everest-base-camp"
+       },
+       "ok": true
+      },
+      {
+       "tool": "explain",
+       "args": {
+        "item_id": "fact:fe5d3755"
+       },
+       "ok": true
+      },
+      {
+       "tool": "explain",
+       "args": {
+        "item_id": "fact:f895e478"
+       },
+       "ok": true
+      },
+      {
+       "tool": "explain",
+       "args": {
+        "item_id": "fact:4364c4d5"
+       },
+       "ok": true
+      },
+      {
+       "tool": "explain",
+       "args": {
+        "item_id": "fact:03f5e132"
+       },
+       "ok": true
+      },
+      {
+       "tool": "decide",
+       "args": {
+        "text": "Booking order for a 12-day Everest Base Camp trek in April for 4 people (2,400 USD each, 9,600 total), built on the Researcher's facts. Route to be confirmed as Everest Base Camp (5,364 m matches). 1) Contact a registered trekking agency first: licensed guide and permits are mandatory, April is peak season, and a pair shares one guide and one porter (2 guides, 2 porters). Get a firm written quote. 2) Lukla flights (domestic, Kathmandu-Lukla return), booked through the agency, since they fill up in April. 3) International flights to Kathmandu, timed to the agency's start date. 4) Travel insurance covering trekking to about 5,500 m and helicopter evacuation, bought before departure. 5) Gear rental or purchase in Kathmandu. 6) Tips at the end of the trek. Estimated split (USD, ground costs): Permits (NPR 6,000 per person, about 45 each) 180. Guides 2 x 360 (about 30/day x 12 days) 720. Porters 2 x 240 (about 20/day x 12) 480. Lukla return flights 4 x 400 (range 160 to 450 each) 1,600. Insurance 4 x 200 800. Teahouse meals and beds on trail 4 x 360 1,440. Kathmandu hotel and meals 480. Gear rental 600. Tips 500. Nepal visa on arrival about 4 x 30 = 120. Misc (SIM, water treatment, snacks) 300. Subtotal about 7,220 (about 1,805 per person). Buffer about 2,380 (about 595 per person). Not included: international flights to Kathmandu, which must fit within the remaining buffer or be paid separately. Confirm the total with the agency before paying.",
+        "derived_from": [
+         "fact:5b820f68",
+         "fact:f895e478",
+         "fact:4364c4d5",
+         "fact:03f5e132",
+         "fact:fe5d3755"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "learn_procedure",
+       "args": {
+        "entity": "topic:trip-planning",
+        "name": "Group trek planning (general steps)",
+        "steps": [
+         "Confirm the route and its highest point, and check it against known elevations.",
+         "Check mandatory requirements first (licensed guide, registered agency, permits) and their costs.",
+         "Ask a registered agency for a firm written quote covering guide, porter, permits and domestic flights.",
+         "Book peak-season items (domestic flights, guides) before international flights, then time international arrival to the trek start.",
+         "Buy trekking insurance that covers the maximum altitude and helicopter evacuation before departure.",
+         "Split costs per person (shared guide and porter halved per pair), add tips and misc, and keep 20 to 30 percent as buffer.",
+         "Note what is excluded from the estimate, such as international flights and visas."
+        ],
+        "derived_from": [
+         "fact:fe5d3755",
+         "fact:4364c4d5"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:tomas-writer",
+        "item_ids": [
+         "dec:214d6122"
+        ],
+        "note": "Please write a short email to the trekking agency asking about: (1) confirming the route as Everest Base Camp (5,364 m highest point), 12 days, April, 4 trekkers; (2) permits (Sagarmatha National Park and Khumbu Pasang Lhamu permits, and whether a TIMS card is needed); (3) licensed guide and porter arrangements, with one guide and one porter shared by each pair; (4) firm written quotes including Lukla flights, and what is excluded. Use the booking order and budget in dec:214d6122. Do not mention international flights as a request; just ask whether the agency can help with them."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "writer",
+     "reply": "Here's the draft email to send to the agency:\n\n**Subject:** Everest Base Camp trek, April, 4 trekkers: permits, guides and quote request\n\nHello,\n\nWe are planning a 12-day trek to Everest Base Camp (highest point 5,364 m) in April with four trekkers. Could you please confirm the route and itinerary?\n",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Draft email to the trekking agency about the Everest Base Camp trek (12 days, April, 4 trekkers). Subject: Everest Base Camp trek, April, 4 trekkers: permits, guides and quote request. Body: Hello, we are planning a 12-day trek to Everest Base Camp (highest point 5,364 m) in April with four trekkers. Could you please confirm the route and itinerary? Permits: please confirm the Sagarmatha National Park and Khumbu Pasang Lhamu permits, and whether a TIMS card is needed. Guides and porters: we understand a licensed guide is mandatory. We would like one licensed guide and one porter shared by each pair of trekkers. Please confirm this arrangement. Quote: please send a firm written quote for the whole group, including Lukla return flights, permits, guide and porter fees, accommodation and meals on the trek, and a list of what is excluded. Also, can you help with international flights to Kathmandu, or arrange airport transfers? Our budget is about USD 2,400 per person. Please let us know your earliest reply date so we can book the Lukla flights in time. Thank you, Tomas",
+        "entity": "doc:everest-base-camp-agency-email",
+        "source": "agent",
+        "derived_from": [
+         "dec:214d6122"
+        ],
+        "confidence": 0.8
+       },
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "consulting",
+   "items": [
+    {
+     "id": "fact:8b8aedc3",
+     "kind": "Fact",
+     "text": "Ines charges 95 euros per hour as a freelance data consultant.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:ebf8573b",
+     "kind": "Fact",
+     "text": "Ines has 14 billable hours free each week.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:2ab21009",
+     "kind": "Fact",
+     "text": "Ines's biggest client, Orlin, pays about 40 days late.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "dec:05634cb6",
+     "kind": "Decision",
+     "text": "Monthly income estimate for Ines: 95 EUR/hour x 14 billable hours/week = 1,330 EUR/week, about 5,763 EUR/month (using 52/12 = 4.33 weeks). Treat this as a ceiling that assumes all 14 hours are billed every week; a prudent planning figure is about 80% of that (about 4,600 EUR/month) until real billing is confirmed. Cash-flow note: Orlin pays about 40 days late, so monthly income from his work arrives roughly 5-6 weeks after it is earned. This is a timing gap, not lost income. Once the gap is in place, monthly receipts match billing, but Ines must cover about 40 days of Orlin billing from savings. If all 14 hours are for Orlin, that is about 1,330 x 40/7 = roughly 7,600 EUR of working capital tied up. Actual Orlin share and invoicing schedule are unknown and should be confirmed.",
+     "source": null,
+     "status": "active"
+    },
+    {
+     "id": "fact:63199c97",
+     "kind": "Fact",
+     "text": "Draft payment reminder email from Ines to her client Orlin (friendly, firm, professional; no income figures):\n\nSubject: Payment reminder: Invoice [INVOICE NUMBER]\n\nHi Orlin,\n\nI hope you're well. I'm writing to remind you that invoice [INVOICE NUMBER], for [AMOUNT], was due on [DUE DATE] and has not yet been paid.\n\nI know invoices can slip through the cracks, so I wanted to flag it promptly. Could you please confirm when payment will be made? If it has already been sent, thank you, and please send me the payment reference so I can match it on my side.\n\nPayments on my invoices are due within the agreed terms, and I'd appreciate it if future invoices could be settled on time. If there's an issue with the invoice or anything you need from me, let me know and I'll sort it out quickly.\n\nThanks very much,\nInes",
+     "source": "agent",
+     "status": "active"
+    }
+   ],
+   "edges": [
+    [
+     "dec:05634cb6",
+     "fact:8b8aedc3"
+    ],
+    [
+     "dec:05634cb6",
+     "fact:ebf8573b"
+    ],
+    [
+     "dec:05634cb6",
+     "fact:2ab21009"
+    ],
+    [
+     "proc:d1d038bb",
+     "fact:8b8aedc3"
+    ],
+    [
+     "proc:d1d038bb",
+     "fact:ebf8573b"
+    ],
+    [
+     "proc:d1d038bb",
+     "fact:2ab21009"
+    ],
+    [
+     "fact:63199c97",
+     "dec:05634cb6"
+    ]
+   ],
+   "blast": {
+    "fact:8b8aedc3": [
+     "dec:05634cb6",
+     "proc:d1d038bb",
+     "fact:63199c97"
+    ],
+    "fact:ebf8573b": [
+     "dec:05634cb6",
+     "proc:d1d038bb",
+     "fact:63199c97"
+    ],
+    "fact:2ab21009": [
+     "dec:05634cb6",
+     "proc:d1d038bb",
+     "fact:63199c97"
+    ],
+    "dec:05634cb6": [
+     "fact:63199c97"
+    ],
+    "fact:63199c97": []
+   },
+   "steps": [
+    {
+     "role": "researcher",
+     "reply": "Thanks, Ines, I've noted that. At 95 euros an hour, your 14 free billable hours come to 1,330 euros a week. With Orlin paying about 40 days late, that income arrives roughly six weeks behind the work, so it may be worth planning cash flow around that gap. Would you like help working out a payment-te",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Ines charges 95 euros per hour as a freelance data consultant.",
+        "entity": "user:ines",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Ines has 14 billable hours free each week.",
+        "entity": "user:ines",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Ines's biggest client, Orlin, pays about 40 days late.",
+        "entity": "user:ines",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "researcher",
+     "reply": "I've passed this to the Planner, who will work out a monthly income estimate and a cash-flow note on Orlin's late payments. The Writer will then draft the reminder to Orlin, with placeholders for the invoice number, amount and due date so you can fill them in.",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:ines"
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:ines-planner",
+        "item_ids": [
+         "fact:8b8aedc3",
+         "fact:ebf8573b",
+         "fact:2ab21009"
+        ],
+        "note": "Ines wants (1) a monthly income plan based on 95 EUR/hour, 14 free billable hours per week, and her biggest client Orlin paying about 40 days late; estimate what income she can count on per month, with a cash-flow note for the late-payment gap. (2) Then pass a polite but firm payment reminder draft to Orlin to the Writer. Keep the reminder neutral on specifics not yet known (invoice number, amount, due date left as placeholders)."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "planner",
+     "reply": "Here's your monthly picture, Ines:\n\n- **Ceiling:** 95 \u20ac \u00d7 14 hours = 1,330 \u20ac a week, or about **5,760 \u20ac a month** if all 14 hours are billed every week.\n- **Planning figure:** about **4,600 \u20ac a month** (around 80% of the ceiling). I'd count on this until your real billing is confirmed.\n- **Cash-flow",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall_procedures",
+       "args": {
+        "entity": "topic:cash-flow-planning"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:ines"
+       },
+       "ok": true
+      },
+      {
+       "tool": "decide",
+       "args": {
+        "text": "Monthly income estimate for Ines: 95 EUR/hour x 14 billable hours/week = 1,330 EUR/week, about 5,763 EUR/month (using 52/12 = 4.33 weeks). Treat this as a ceiling that assumes all 14 hours are billed every week; a prudent planning figure is about 80% of that (about 4,600 EUR/month) until real billing is confirmed. Cash-flow note: Orlin pays about 40 days late, so monthly income from his work arrives roughly 5-6 weeks after it is earned. This is a timing gap, not lost income. Once the gap is in place, monthly receipts match billing, but Ines must cover about 40 days of Orlin billing from savings. If all 14 hours are for Orlin, that is about 1,330 x 40/7 = roughly 7,600 EUR of working capital tied up. Actual Orlin share and invoicing schedule are unknown and should be confirmed.",
+        "derived_from": [
+         "fact:8b8aedc3",
+         "fact:ebf8573b",
+         "fact:2ab21009"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "learn_procedure",
+       "args": {
+        "entity": "topic:cash-flow-planning",
+        "name": "Freelance monthly income and late-payment cash-flow estimate",
+        "steps": [
+         "Recall the hourly rate, weekly billable hours and client payment delay from memory.",
+         "Multiply rate by weekly billable hours to get weekly income, then multiply by 52/12 for monthly income.",
+         "Give a ceiling figure (full utilization) and a prudent planning figure (about 80% utilization), and say which is which.",
+         "For late-paying clients, work out the lag in weeks (days late / 7) and the working capital tied up: weekly income from that client times the lag.",
+         "State assumptions clearly, such as the share of hours billed to the late payer, and list what needs confirming.",
+         "Record the estimate as a decision built on the source facts."
+        ],
+        "derived_from": [
+         "fact:8b8aedc3",
+         "fact:ebf8573b",
+         "fact:2ab21009"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:ines-writer",
+        "item_ids": [
+         "dec:05634cb6"
+        ],
+        "note": "Please draft a polite but firm payment reminder from Ines to her client Orlin, who pays about 40 days late. Keep invoice number, amount and due date as placeholders (e.g. [INVOICE NUMBER], [AMOUNT], [DUE DATE]). The decision dec:05634cb6 gives the cash-flow context, but the email itself should not quote the income figures. Keep the tone friendly, firm and professional."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "writer",
+     "reply": "Here's a draft you can adapt:\n\n---\n\n**Subject:** Payment reminder: Invoice [INVOICE NUMBER]\n\nHi Orlin,\n\nI hope you're well. I'm writing to remind you that invoice [INVOICE NUMBER], for [AMOUNT], was due on [DUE DATE] and has not yet been paid.\n\nI know invoices can slip through the cracks, so I wante",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Draft payment reminder email from Ines to her client Orlin (friendly, firm, professional; no income figures):\n\nSubject: Payment reminder: Invoice [INVOICE NUMBER]\n\nHi Orlin,\n\nI hope you're well. I'm writing to remind you that invoice [INVOICE NUMBER], for [AMOUNT], was due on [DUE DATE] and has not yet been paid.\n\nI know invoices can slip through the cracks, so I wanted to flag it promptly. Could you please confirm when payment will be made? If it has already been sent, thank you, and please send me the payment reference so I can match it on my side.\n\nPayments on my invoices are due within the agreed terms, and I'd appreciate it if future invoices could be settled on time. If there's an issue with the invoice or anything you need from me, let me know and I'll sort it out quickly.\n\nThanks very much,\nInes",
+        "entity": "doc:orlin-payment-reminder",
+        "entity_name": "Orlin payment reminder",
+        "source": "agent",
+        "derived_from": [
+         "dec:05634cb6"
+        ],
+        "confidence": 0.8
+       },
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "moving",
+   "items": [
+    {
+     "id": "fact:16a25297",
+     "kind": "Fact",
+     "text": "Pedro is moving to a two-bedroom flat in Lisbon, which has no washing machine.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:5e012ae7",
+     "kind": "Fact",
+     "text": "The rental van Pedro can hire for the move holds 15 cubic metres.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:39a66b16",
+     "kind": "Fact",
+     "text": "The movers Pedro has quoted charge 85 euros an hour.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:f1acc58a",
+     "kind": "Fact",
+     "text": "A Lavamais self-service laundromat is located just north of Anjos metro station on the green line in Lisbon, with washing machines in 8, 13 and 16 kg sizes and four dryers.",
+     "source": "web",
+     "status": "active"
+    },
+    {
+     "id": "fact:a8d3fb2c",
+     "kind": "Fact",
+     "text": "Lisbon has rental listings that include an in-unit washer/dryer, and some drop-off laundry services charge by weight (one reviewer reported 3.5 euros per kg for wash and dry without ironing).",
+     "source": "web",
+     "status": "active"
+    },
+    {
+     "id": "dec:f830fb17",
+     "kind": "Decision",
+     "text": "Move plan for Pedro's move to a two-bedroom flat in Lisbon (flat has no washing machine):\n1. Washing machine: first ask the landlord whether a washer is left in the flat or included in the rent. If not, buy a basic new or second-hand machine locally (or rent one for the first months) and arrange delivery and installation for move-in day. Until it is set up, use a self-service laundromat such as Lavamais near Anjos metro (green line), after confirming it is still open and checking current prices, since the sources are older.\n2. Van: the 15 m\u00b3 van is reasonable for a two-bedroom flat, but only if the belongings are mostly furniture and standard boxes. Make an inventory and measure the big items before booking; if it looks tight, consider a second trip or a larger van.\n3. Movers at 85 euros/hour: book only for the heavy lifting or the van driving, and keep the job short by loading in advance. Estimate cost as hours x 85 euros (for example, 4 hours is about 340 euros) and get a fixed quote before booking.\n4. Timeline: confirm the move-in date and key handover with the landlord, book van and movers together, and arrange utilities and internet for the new flat.\nPrices and availability for laundry options are indicative only and need checking before use.",
+     "source": null,
+     "status": "active"
+    },
+    {
+     "id": "fact:d48704a4",
+     "kind": "Fact",
+     "text": "Draft message from Pedro to his new landlord for the Lisbon two-bedroom flat: \"Dear [Landlord's name], I hope you are well. I'm writing to confirm the details for my move into the flat on [move-in date]. The flat has no washing machine, so could you let me know whether one is left in the flat or whether one is included in the rent? Could we also agree on the key handover on [date/time]? Please also let me know whether the van and movers can access the building on the day, including any parking or lift booking needed. Thank you very much, and I look forward to hearing from you. Kind regards, Pedro\"",
+     "source": "agent",
+     "status": "active"
+    }
+   ],
+   "edges": [
+    [
+     "dec:f830fb17",
+     "fact:16a25297"
+    ],
+    [
+     "dec:f830fb17",
+     "fact:5e012ae7"
+    ],
+    [
+     "dec:f830fb17",
+     "fact:39a66b16"
+    ],
+    [
+     "dec:f830fb17",
+     "fact:f1acc58a"
+    ],
+    [
+     "dec:f830fb17",
+     "fact:a8d3fb2c"
+    ],
+    [
+     "proc:314abe5e",
+     "fact:16a25297"
+    ],
+    [
+     "proc:314abe5e",
+     "fact:5e012ae7"
+    ],
+    [
+     "proc:314abe5e",
+     "fact:39a66b16"
+    ],
+    [
+     "fact:d48704a4",
+     "fact:16a25297"
+    ],
+    [
+     "fact:d48704a4",
+     "fact:a8d3fb2c"
+    ],
+    [
+     "fact:d48704a4",
+     "dec:f830fb17"
+    ]
+   ],
+   "blast": {
+    "fact:16a25297": [
+     "dec:f830fb17",
+     "fact:d48704a4",
+     "proc:314abe5e"
+    ],
+    "fact:5e012ae7": [
+     "dec:f830fb17",
+     "proc:314abe5e",
+     "fact:d48704a4"
+    ],
+    "fact:39a66b16": [
+     "dec:f830fb17",
+     "proc:314abe5e",
+     "fact:d48704a4"
+    ],
+    "fact:f1acc58a": [
+     "dec:f830fb17",
+     "fact:d48704a4"
+    ],
+    "fact:a8d3fb2c": [
+     "dec:f830fb17",
+     "fact:d48704a4"
+    ],
+    "dec:f830fb17": [
+     "fact:d48704a4"
+    ],
+    "fact:d48704a4": []
+   },
+   "steps": [
+    {
+     "role": "researcher",
+     "reply": "Thanks, I've noted the details: a two-bedroom flat in Lisbon with no washing machine, a 15 m\u00b3 rental van, and movers at \u20ac85 an hour.\n\nWhat would help most next? I could:\n- Work out whether 15 m\u00b3 will fit your belongings, if you tell me roughly what you're moving (furniture, boxes).\n- Estimate the mo",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:pedro"
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Pedro is moving to a two-bedroom flat in Lisbon, which has no washing machine.",
+        "entity": "user:pedro",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "The rental van Pedro can hire for the move holds 15 cubic metres.",
+        "entity": "user:pedro",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "The movers Pedro has quoted charge 85 euros an hour.",
+        "entity": "user:pedro",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "researcher",
+     "reply": "I've passed your move to the planner, who will draft the plan, including what to do about the washing machine. The writer will then draft the message to your new landlord.\n\nSome options I found for the washing machine:\n- **Self-service laundromats:** Lavamais self-service laundromat located just nor",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:pedro"
+       },
+       "ok": true
+      },
+      {
+       "tool": "search_history",
+       "args": {
+        "query": "Lisbon flat move washing machine landlord"
+       },
+       "ok": true
+      },
+      {
+       "tool": "save_web_fact",
+       "args": {
+        "text": "A Lavamais self-service laundromat is located just north of Anjos metro station on the green line in Lisbon, with washing machines in 8, 13 and 16 kg sizes and four dryers.",
+        "entity": "topic:lisbon-laundry",
+        "entity_name": "Laundry options in Lisbon",
+        "sources": [
+         "https://www.tripadvisor.com/ShowTopic-g189158-i203-k4389461-Laundry_in_Lisbon-Lisbon_Lisbon_District_Central_Portugal.html"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "save_web_fact",
+       "args": {
+        "text": "Lisbon has rental listings that include an in-unit washer/dryer, and some drop-off laundry services charge by weight (one reviewer reported 3.5 euros per kg for wash and dry without ironing).",
+        "entity": "topic:lisbon-laundry",
+        "sources": [
+         "https://rentberry.com/pt/apartments/s/lisbon-portugal/washer-dryer",
+         "https://www.tripadvisor.com/ShowTopic-g189158-i203-k4389461-Laundry_in_Lisbon-Lisbon_Lisbon_District_Central_Portugal.html"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:pedro-planner",
+        "item_ids": [
+         "fact:16a25297",
+         "fact:5e012ae7",
+         "fact:39a66b16",
+         "fact:f1acc58a",
+         "fact:a8d3fb2c"
+        ],
+        "note": "Pedro wants a plan for moving to a two-bedroom flat in Lisbon, including what to do about the missing washing machine (options: buy new/second-hand, rent, self-service laundromat or drop-off laundry; the laundry sources are from older web pages, so treat prices as indicative). Van holds 15 m\u00b3, movers charge 85 euros/hour. Draft the plan, then pass it to the Writer for the message to the new landlord, which should ask about the washing machine situation and move-in logistics. Note the flat has no washing machine."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "planner",
+     "reply": "Here's the plan:\n\n1. **Washing machine:** First ask the landlord whether one is left in the flat or included in the rent. If not, buy a basic new or second-hand machine (or rent one) and arrange delivery for move-in day. Until then, use a self-service laundromat such as Lavamais near Anjos metro, af",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall_procedures",
+       "args": {
+        "entity": "topic:trip-planning"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:pedro"
+       },
+       "ok": true
+      },
+      {
+       "tool": "decide",
+       "args": {
+        "text": "Move plan for Pedro's move to a two-bedroom flat in Lisbon (flat has no washing machine):\n1. Washing machine: first ask the landlord whether a washer is left in the flat or included in the rent. If not, buy a basic new or second-hand machine locally (or rent one for the first months) and arrange delivery and installation for move-in day. Until it is set up, use a self-service laundromat such as Lavamais near Anjos metro (green line), after confirming it is still open and checking current prices, since the sources are older.\n2. Van: the 15 m\u00b3 van is reasonable for a two-bedroom flat, but only if the belongings are mostly furniture and standard boxes. Make an inventory and measure the big items before booking; if it looks tight, consider a second trip or a larger van.\n3. Movers at 85 euros/hour: book only for the heavy lifting or the van driving, and keep the job short by loading in advance. Estimate cost as hours x 85 euros (for example, 4 hours is about 340 euros) and get a fixed quote before booking.\n4. Timeline: confirm the move-in date and key handover with the landlord, book van and movers together, and arrange utilities and internet for the new flat.\nPrices and availability for laundry options are indicative only and need checking before use.",
+        "derived_from": [
+         "fact:16a25297",
+         "fact:5e012ae7",
+         "fact:39a66b16",
+         "fact:f1acc58a",
+         "fact:a8d3fb2c"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "learn_procedure",
+       "args": {
+        "entity": "topic:trip-planning",
+        "name": "Plan a household move",
+        "steps": [
+         "Record the key constraints: new home size and missing appliances, van capacity, mover hourly rate.",
+         "Ask the landlord about included appliances before buying or renting any.",
+         "Choose a fallback for missing appliances (laundromat, drop-off laundry) and confirm current prices and opening.",
+         "Check whether the van capacity fits the inventory; measure large items.",
+         "Estimate mover cost as hours x hourly rate, and get a fixed quote before booking.",
+         "Book van and movers together, and arrange utilities and internet for the new home.",
+         "Hand the landlord message to the writer."
+        ],
+        "derived_from": [
+         "fact:16a25297",
+         "fact:5e012ae7",
+         "fact:39a66b16"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:pedro-writer",
+        "item_ids": [
+         "dec:f830fb17",
+         "fact:16a25297",
+         "fact:a8d3fb2c"
+        ],
+        "note": "Draft a short message from Pedro to his new landlord for the Lisbon two-bedroom flat. Ask whether a washing machine is left in the flat or included in the rent (the flat has none), and cover move-in logistics: confirm the move-in date, key handover, and van/mover access to the building. Keep it friendly and brief."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "writer",
+     "reply": "Here's a short draft you can send to your new landlord. Just fill in the square brackets:\n\n---\n\nDear [Landlord's name],\n\nI hope you are well. I'm writing to confirm the details for my move into the flat on [move-in date].\n\nThe flat has no washing machine, so could you let me know whether one is left",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Draft message from Pedro to his new landlord for the Lisbon two-bedroom flat: \"Dear [Landlord's name], I hope you are well. I'm writing to confirm the details for my move into the flat on [move-in date]. The flat has no washing machine, so could you let me know whether one is left in the flat or whether one is included in the rent? Could we also agree on the key handover on [date/time]? Please also let me know whether the van and movers can access the building on the day, including any parking or lift booking needed. Thank you very much, and I look forward to hearing from you. Kind regards, Pedro\"",
+        "entity": "doc:lisbon-landlord-message",
+        "entity_name": "Lisbon landlord message",
+        "source": "agent",
+        "confidence": 0.8,
+        "derived_from": [
+         "dec:f830fb17",
+         "fact:16a25297",
+         "fact:a8d3fb2c"
+        ]
+       },
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "podcast",
+   "items": [
+    {
+     "id": "fact:4ba2a045",
+     "kind": "Fact",
+     "text": "Zainab's podcast gets about 1,800 listens per episode. A sponsor pays $22 per thousand listens (CPM). Zainab publishes a new episode every Tuesday.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "dec:ebff8b16",
+     "kind": "Decision",
+     "text": "Four-episode sponsor package price: list price $158.40 (4 episodes x 1,800 listens x $22 CPM = $39.60 per episode). Recommended package price $150 for a four-episode commitment (about 5% off list), with a floor of about $140 for negotiation.",
+     "source": null,
+     "status": "active"
+    },
+    {
+     "id": "fact:1b1890a6",
+     "kind": "Fact",
+     "text": "Pitch email to a new sponsor for a four-episode package: Subject: Four-week podcast sponsorship, 1,800 listens per episode. Hi [Name], I host a weekly podcast that publishes every Tuesday and averages about 1,800 listens per episode. I'd like to offer [Company] a four-episode sponsorship over the next four Tuesdays. At our $22 CPM rate, that is about $39.60 of value per episode, or $158.40 across the four episodes. For a four-week commitment, I can offer the package at $150. I think this would be a good fit for [Company]'s audience, and I'd be happy to share episode stats or a sample read. Would you have 15 minutes this week to talk? Best, Zainab",
+     "source": "agent",
+     "status": "active"
+    }
+   ],
+   "edges": [
+    [
+     "dec:ebff8b16",
+     "fact:4ba2a045"
+    ],
+    [
+     "proc:1efa13d4",
+     "fact:4ba2a045"
+    ],
+    [
+     "fact:1b1890a6",
+     "dec:ebff8b16"
+    ]
+   ],
+   "blast": {
+    "fact:4ba2a045": [
+     "dec:ebff8b16",
+     "proc:1efa13d4",
+     "fact:1b1890a6"
+    ],
+    "dec:ebff8b16": [
+     "fact:1b1890a6"
+    ],
+    "fact:1b1890a6": []
+   },
+   "steps": [
+    {
+     "role": "researcher",
+     "reply": "At 1,800 listens and $22 per thousand, each episode earns about **$39.60** from this sponsor. Over a year of weekly Tuesday episodes (52), that comes to about **$2,059** if listens stay steady.\n\nIf you want, I can work out what a different listen count or a second sponsor would add.",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:zainab"
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Zainab's podcast gets about 1,800 listens per episode. A sponsor pays $22 per thousand listens (CPM). Zainab publishes a new episode every Tuesday.",
+        "entity": "user:zainab",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "researcher",
+     "reply": "I've passed this to the planner to work out the package price, and it will then draft the pitch email. Their plan will build on your current numbers: about 1,800 listens per episode, a $22 CPM, and weekly Tuesday releases.",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:zainab"
+       },
+       "ok": true
+      },
+      {
+       "tool": "search_history",
+       "args": {
+        "query": "podcast sponsor listens episode"
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:zainab-planner",
+        "item_ids": [
+         "fact:4ba2a045"
+        ],
+        "note": "Zainab wants a price for a four-episode sponsor package for a new sponsor, then a pitch email. Base figures: about 1,800 listens per episode, current sponsor rate $22 CPM, one episode every Tuesday (so four episodes is about four weeks). Please plan the package price and pass the draft to the Writer for the pitch email."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "planner",
+     "reply": "I'd suggest pricing the four-episode package at **$150**. At 1,800 listens per episode and a $22 CPM, the list value is $158.40 (about $39.60 per episode), so $150 is roughly 5% off for a four-week commitment. I'd hold $140 as the lowest you go in negotiations.\n\nI've passed the pitch email to the Wr",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall_procedures",
+       "args": {
+        "entity": "topic:sponsor-package"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:zainab"
+       },
+       "ok": true
+      },
+      {
+       "tool": "decide",
+       "args": {
+        "text": "Four-episode sponsor package price: list price $158.40 (4 episodes x 1,800 listens x $22 CPM = $39.60 per episode). Recommended package price $150 for a four-episode commitment (about 5% off list), with a floor of about $140 for negotiation.",
+        "derived_from": [
+         "fact:4ba2a045"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "learn_procedure",
+       "args": {
+        "entity": "topic:sponsor-package",
+        "name": "Price a multi-episode podcast sponsor package",
+        "steps": [
+         "Get average listens per episode and the current CPM rate.",
+         "Compute per-episode value: listens / 1000 x CPM.",
+         "Multiply by number of episodes for the list price of the package.",
+         "Apply a small package discount (about 5%) for a multi-episode commitment, and set a negotiation floor a bit below that.",
+         "Hand the price and figures to the writer for the pitch."
+        ],
+        "derived_from": [
+         "fact:4ba2a045"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:zainab-writer",
+        "item_ids": [
+         "dec:ebff8b16"
+        ],
+        "note": "Write a pitch email to a new sponsor for a four-episode package (one episode each Tuesday, about four weeks). Figures: about 1,800 listens per episode; per-episode value at $22 CPM is $39.60; list price for four episodes is $158.40; offer price $150. Sign off as Zainab."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "writer",
+     "reply": "Here's a pitch email you can adapt:\n\n**Subject:** Four-week podcast sponsorship, about 1,800 listens per episode\n\nHi [Name],\n\nI host a weekly podcast that publishes every Tuesday and averages about 1,800 listens per episode. I'd like to offer [Company] a four-episode sponsorship across the next four",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Pitch email to a new sponsor for a four-episode package: Subject: Four-week podcast sponsorship, 1,800 listens per episode. Hi [Name], I host a weekly podcast that publishes every Tuesday and averages about 1,800 listens per episode. I'd like to offer [Company] a four-episode sponsorship over the next four Tuesdays. At our $22 CPM rate, that is about $39.60 of value per episode, or $158.40 across the four episodes. For a four-week commitment, I can offer the package at $150. I think this would be a good fit for [Company]'s audience, and I'd be happy to share episode stats or a sample read. Would you have 15 minutes this week to talk? Best, Zainab",
+        "entity": "doc:sponsor-package-pitch",
+        "source": "agent",
+        "derived_from": [
+         "dec:ebff8b16"
+        ],
+        "confidence": 0.8
+       },
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "sciencefair",
+   "items": [
+    {
+     "id": "fact:55b965cd",
+     "kind": "Fact",
+     "text": "The school science fair is on 9 March in the gym.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:475c972c",
+     "kind": "Fact",
+     "text": "38 student projects are registered for the school science fair, and each project needs a table 1.2 metres wide (38 tables, about 45.6 metres of table width in total).",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "dec:c57072a4",
+     "kind": "Decision",
+     "text": "Provisional gym layout for the 9 March science fair (ASSUMED gym 30 m x 18 m with exits on the long walls; real dimensions not yet given). Option chosen: two rows of 19 tables each, 1.2 m per table (19 x 1.2 = 22.8 m per row, 38 tables total), running along the 30 m length, with a 3 m central visitor aisle, 1.5 m aisles along the side walls, and 2 m clear zones in front of every exit door. Alternative: four rows of 10 tables (40 spaces) with 2 m aisles between rows, which gives a spare space but narrower aisles.",
+     "source": null,
+     "status": "active"
+    },
+    {
+     "id": "fact:d6036434",
+     "kind": "Fact",
+     "text": "Parent newsletter item, school science fair: Our school science fair takes place on 9 March in the gym. We have 38 student projects registered, and we're excited to see what our young scientists have been working on. Parents and families, please keep an eye out for more details from school. We look forward to seeing you there!",
+     "source": "agent",
+     "status": "active"
+    }
+   ],
+   "edges": [
+    [
+     "dec:c57072a4",
+     "fact:55b965cd"
+    ],
+    [
+     "dec:c57072a4",
+     "fact:475c972c"
+    ],
+    [
+     "fact:d6036434",
+     "fact:55b965cd"
+    ],
+    [
+     "fact:d6036434",
+     "fact:475c972c"
+    ]
+   ],
+   "blast": {
+    "fact:55b965cd": [
+     "dec:c57072a4",
+     "fact:d6036434"
+    ],
+    "fact:475c972c": [
+     "dec:c57072a4",
+     "fact:d6036434"
+    ],
+    "dec:c57072a4": [],
+    "fact:d6036434": []
+   },
+   "steps": [
+    {
+     "role": "researcher",
+     "reply": "Thanks, Mr Okafor. With 38 projects at 1.2 metres each, you'll need about 45.6 metres of table width in total. That's 38 tables, so the gym layout will need to fit all of them along with aisles and display space.\n\nWould you like help planning the layout or a schedule for the day?",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "The school science fair is on 9 March in the gym.",
+        "entity": "user:mr-okafor",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "38 student projects are registered for the school science fair, and each project needs a table 1.2 metres wide (38 tables, about 45.6 metres of table width in total).",
+        "entity": "user:mr-okafor",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "38 student projects are registered for the school science fair, and each project needs a table 1.2 metres wide (38 tables, about 45.6 metres of table width in total).",
+        "entity": "user:mr-okafor",
+        "source": "user",
+        "confidence": 0.9,
+        "distinct_from": [
+         "fact:55b965cd"
+        ]
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "researcher",
+     "reply": "I've passed the layout plan to our Planner, and it will then hand the parent newsletter item to our Writer.\n\nTo make the layout work, I need the gym's measurements: its length and width, and where the doors are. Could you send those? Until then, the Planner will work from an assumed size and label i",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:mr-okafor"
+       },
+       "ok": true
+      },
+      {
+       "tool": "search_history",
+       "args": {
+        "query": "gym dimensions science fair"
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:mr-okafor-planner",
+        "item_ids": [
+         "fact:55b965cd",
+         "fact:475c972c"
+        ],
+        "note": "Mr Okafor wants (1) a gym layout plan for the school science fair on 9 March: 38 student projects, each on a table 1.2 m wide (about 45.6 m of table width in total), plus aisles and display space. We do not yet have the gym's dimensions or the number of exits, so state your assumptions clearly and ask him for the real measurements. (2) Then a newsletter item for parents, which you should pass to the Writer. Please keep the layout options short."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "planner",
+     "reply": "Here's a provisional layout. I assumed the gym is about 30 m long by 18 m wide with exits on the long walls, since I don't have your real measurements yet.\n\n**Recommended: two rows of 19 tables**\n- Each row is 22.8 m long, so it fits the 30 m length.\n- That gives exactly 38 tables.\n- A 3 m central a",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall_procedures",
+       "args": {
+        "entity": "topic:event-layout"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:mr-okafor"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "topic:science-fair"
+       },
+       "ok": true
+      },
+      {
+       "tool": "decide",
+       "args": {
+        "text": "Provisional gym layout for the 9 March science fair (ASSUMED gym 30 m x 18 m with exits on the long walls; real dimensions not yet given). Option chosen: two rows of 19 tables each, 1.2 m per table (19 x 1.2 = 22.8 m per row, 38 tables total), running along the 30 m length, with a 3 m central visitor aisle, 1.5 m aisles along the side walls, and 2 m clear zones in front of every exit door. Alternative: four rows of 10 tables (40 spaces) with 2 m aisles between rows, which gives a spare space but narrower aisles.",
+        "derived_from": [
+         "fact:55b965cd",
+         "fact:475c972c"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "learn_procedure",
+       "args": {
+        "name": "Event hall table layout for a fair or exhibition",
+        "entity": "topic:event-layout",
+        "steps": [
+         "Get the room's length, width, door positions and any fixed features before planning; if missing, state the assumed size clearly.",
+         "Count the items to place and the width each needs; multiply to get the total table width.",
+         "Try rows that divide evenly into the count (for example two rows of equal length) and check each row fits the room length.",
+         "Leave a central visitor aisle of about 3 m, side aisles of about 1.5 m, and keep 2 m clear in front of every exit.",
+         "Check the layout still leaves space for judges, display boards, power and a registration desk.",
+         "Offer two short options and recommend one, then ask for the real measurements to confirm."
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:mr-okafor-writer",
+        "item_ids": [
+         "fact:55b965cd",
+         "fact:475c972c"
+        ],
+        "note": "Please write a short, friendly newsletter item for parents: the school science fair is on 9 March in the gym, with 38 student projects registered. Keep it general; do not include the layout details, which are still provisional and awaiting the gym's measurements from Mr Okafor."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "writer",
+     "reply": "**Science Fair Coming Up on 9 March!**\n\nOur school science fair is on **9 March in the gym**, and we're excited to say that **38 student projects** have been registered so far. Our young scientists have been working hard, and we can't wait to see what they've created.\n\nParents and families, please w",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Parent newsletter item, school science fair: Our school science fair takes place on 9 March in the gym. We have 38 student projects registered, and we're excited to see what our young scientists have been working on. Parents and families, please keep an eye out for more details from school. We look forward to seeing you there!",
+        "entity": "doc:science-fair-parent-newsletter",
+        "source": "agent",
+        "derived_from": [
+         "fact:55b965cd",
+         "fact:475c972c"
+        ],
+        "confidence": 0.9
+       },
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "release",
+   "items": [
+    {
+     "id": "fact:aae4d2af",
+     "kind": "Fact",
+     "text": "Mobile app version 4.2 ships on 3 September.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:0226f65c",
+     "kind": "Fact",
+     "text": "The mobile app's crash rate is 0.8 percent of sessions.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:9f493356",
+     "kind": "Fact",
+     "text": "The payment SDK used in the mobile app is deprecated at the end of October.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "dec:9590355b",
+     "kind": "Decision",
+     "text": "Pre-ship plan for mobile app version 4.2. Ship date is recorded as 3 September, but today is 18 October 2026, so the date must be confirmed first (2027, or a moved date). Tasks: (1) Confirm the ship date and update the release calendar. (2) Identify the payment SDK in use and its official deprecation date (end of October) and recommended replacement; decide whether migration lands in 4.2 or a follow-up release. (3) Plan the migration and test payment flows end to end on the replacement SDK. (4) Address the crash rate of 0.8% of sessions: set a target, find top crash causes, and confirm whether 4.2 fixes or worsens it before release. (5) Run regression and release-candidate testing, then staged rollout with crash-rate monitoring. (6) Prepare release notes (draft via Writer) and store listing updates.",
+     "source": null,
+     "status": "active"
+    },
+    {
+     "id": "fact:67b8bd09",
+     "kind": "Fact",
+     "text": "Draft release notes for mobile app version 4.2 (release date to be confirmed; crash rate 0.8% of sessions; payment SDK deprecation at end of October, SDK not named):\n\nMobile App 4.2 Release Notes\n\nRelease date: To be confirmed\n\nWhat's new and improved\n- Stability: We're working to reduce app crashes. Current crash rate is 0.8% of sessions, and we're tracking it closely for this release.\n- Payments: We're moving our payment integration to a supported version ahead of the end-of-October deprecation of the current payment library, so checkout stays reliable.\n\nThank you for using the app. As always, send us your feedback and we'll keep improving it.",
+     "source": "agent",
+     "status": "active"
+    }
+   ],
+   "edges": [
+    [
+     "dec:9590355b",
+     "fact:aae4d2af"
+    ],
+    [
+     "dec:9590355b",
+     "fact:0226f65c"
+    ],
+    [
+     "dec:9590355b",
+     "fact:9f493356"
+    ],
+    [
+     "fact:67b8bd09",
+     "fact:aae4d2af"
+    ],
+    [
+     "fact:67b8bd09",
+     "fact:0226f65c"
+    ],
+    [
+     "fact:67b8bd09",
+     "fact:9f493356"
+    ],
+    [
+     "fact:67b8bd09",
+     "dec:9590355b"
+    ]
+   ],
+   "blast": {
+    "fact:aae4d2af": [
+     "dec:9590355b",
+     "fact:67b8bd09"
+    ],
+    "fact:0226f65c": [
+     "dec:9590355b",
+     "fact:67b8bd09"
+    ],
+    "fact:9f493356": [
+     "dec:9590355b",
+     "fact:67b8bd09"
+    ],
+    "dec:9590355b": [
+     "fact:67b8bd09"
+    ],
+    "fact:67b8bd09": []
+   },
+   "steps": [
+    {
+     "role": "researcher",
+     "reply": "Got it, I've noted that version 4.2 ships on 3 September, the crash rate is 0.8% of sessions, and your payment SDK is deprecated at the end of October.\n\nOne thing to check: today is 18 October 2026, so 3 September 2026 has already passed. Did you mean 3 September 2027, or has the release date moved?",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Mobile app version 4.2 ships on 3 September.",
+        "entity": "user:ravi",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "The mobile app's crash rate is 0.8 percent of sessions.",
+        "entity": "user:ravi",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "The payment SDK used in the mobile app is deprecated at the end of October.",
+        "entity": "user:ravi",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "researcher",
+     "reply": "I've passed this to our planner, who will draft the pre-ship plan and then hand the release notes to our writer.\n\nTwo things will shape the plan:\n- **The date:** 3 September 2026 has already passed, so the plan will treat the ship date as needing confirmation.\n- **The payment SDK:** we don't know wh",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:ravi"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "topic:mobile-app-release-4-2"
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:ravi-planner",
+        "item_ids": [
+         "fact:aae4d2af",
+         "fact:0226f65c",
+         "fact:9f493356"
+        ],
+        "note": "Ravi wants (1) a pre-ship plan for mobile app version 4.2 and (2) release notes for it, drafted via the Writer. Known facts: 4.2 ships on 3 September (today is 18 October 2026, so the date may be 2027 or may have moved; flag this in the plan rather than assuming). Crash rate is 0.8% of sessions. The payment SDK is deprecated at the end of October; the SDK name and replacement are not yet known, so list confirming them as a task. Please pass the release notes draft to the Writer."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "planner",
+     "reply": "Here's the pre-ship plan for mobile app version 4.2:\n\n1. **Confirm the ship date.** Your date is 3 September, but today is 18 October 2026, so it has already passed. Is it 3 September 2027, or has it moved? Everything else depends on this.\n2. **Identify the payment SDK.** Tell me its name and I'll l",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall_procedures",
+       "args": {
+        "entity": "topic:release-planning"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:ravi"
+       },
+       "ok": true
+      },
+      {
+       "tool": "decide",
+       "args": {
+        "text": "Pre-ship plan for mobile app version 4.2. Ship date is recorded as 3 September, but today is 18 October 2026, so the date must be confirmed first (2027, or a moved date). Tasks: (1) Confirm the ship date and update the release calendar. (2) Identify the payment SDK in use and its official deprecation date (end of October) and recommended replacement; decide whether migration lands in 4.2 or a follow-up release. (3) Plan the migration and test payment flows end to end on the replacement SDK. (4) Address the crash rate of 0.8% of sessions: set a target, find top crash causes, and confirm whether 4.2 fixes or worsens it before release. (5) Run regression and release-candidate testing, then staged rollout with crash-rate monitoring. (6) Prepare release notes (draft via Writer) and store listing updates.",
+        "derived_from": [
+         "fact:aae4d2af",
+         "fact:0226f65c",
+         "fact:9f493356"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "learn_procedure",
+       "args": {
+        "name": "Pre-ship plan for a mobile app release",
+        "entity": "topic:release-planning",
+        "steps": [
+         "Confirm the ship date against today's date and update the release calendar if it has passed or moved.",
+         "List third-party SDKs and their deprecation dates; confirm replacements and schedule migration.",
+         "Review the current crash rate and set a target; identify top crash causes and whether the release fixes or adds them.",
+         "Run regression and release-candidate testing, including payment flows.",
+         "Plan a staged rollout with crash-rate monitoring and a rollback plan.",
+         "Draft release notes and store listing copy, then review them before publishing."
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:ravi-writer",
+        "item_ids": [
+         "fact:aae4d2af",
+         "fact:0226f65c",
+         "fact:9f493356"
+        ],
+        "note": "Please draft release notes for mobile app version 4.2 for Ravi. Facts: 4.2 is scheduled to ship on 3 September, but that date is flagged for confirmation (today is 18 October 2026). Crash rate is 0.8% of sessions. The payment SDK is deprecated at the end of October; the SDK name and replacement are still unconfirmed, so do not name them. Keep the date generic or mark it as to be confirmed."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "writer",
+     "reply": "Here's the draft release notes for mobile app version 4.2:\n\n**Mobile App 4.2 Release Notes**\n\n**Release date:** To be confirmed\n\n**What's new and improved**\n- **Stability:** We're working to reduce app crashes. The current crash rate is 0.8% of sessions, and we're tracking it closely for this releas",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Draft release notes for mobile app version 4.2 (release date to be confirmed; crash rate 0.8% of sessions; payment SDK deprecation at end of October, SDK not named):\n\nMobile App 4.2 Release Notes\n\nRelease date: To be confirmed\n\nWhat's new and improved\n- Stability: We're working to reduce app crashes. Current crash rate is 0.8% of sessions, and we're tracking it closely for this release.\n- Payments: We're moving our payment integration to a supported version ahead of the end-of-October deprecation of the current payment library, so checkout stays reliable.\n\nThank you for using the app. As always, send us your feedback and we'll keep improving it.",
+        "entity": "doc:mobile-app-4-2-release-notes",
+        "entity_name": "Mobile app 4.2 release notes",
+        "source": "agent",
+        "derived_from": [
+         "dec:9590355b",
+         "fact:aae4d2af",
+         "fact:0226f65c",
+         "fact:9f493356"
+        ],
+        "confidence": 0.7
+       },
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "garden",
+   "items": [
+    {
+     "id": "fact:863f9071",
+     "kind": "Fact",
+     "text": "Marguerite's community garden has 24 plots.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:0f209924",
+     "kind": "Fact",
+     "text": "Marguerite's community garden has a waiting list of 61 people.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:ee36e4f5",
+     "kind": "Fact",
+     "text": "Marguerite's community garden water bill is 310 pounds a year.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "dec:bc51b5f9",
+     "kind": "Decision",
+     "text": "Yearly fee per plot: \u00a313 (24 plots x \u00a313 = \u00a3312, which covers the \u00a3310 water bill with a \u00a32 margin). This covers water only; other costs (tools, upkeep) are not yet known and would need adding. Waiting list process: keep one ordered list of the 61 people, first-come-first-served by sign-up date; when a plot frees up (by resignation or end of season), offer it to the next person on the list by email/phone, giving 7 days to accept or decline; a declined offer moves the person to the back of the list; plots are reallocated at the start of each season; a waitlist sign-up form is kept open so newcomers join at the end.",
+     "source": null,
+     "status": "active"
+    },
+    {
+     "id": "fact:f99a68e4",
+     "kind": "Fact",
+     "text": "Community garden gate notice (draft): Hello everyone, our yearly plot fee is \u00a313 per plot. With 24 plots, this covers our \u00a3310 annual water bill. Waiting list: we have 61 people waiting for a plot. Plots are offered first come, first served by sign-up date. When a plot frees up, it is offered to the next person on the list, who has 7 days to accept. If you decline, you move to the back of the list. Plots are reallocated at the start of each season. New people can join the end of the waiting list at any time. Thank you for helping keep the garden running. Marguerite",
+     "source": "agent",
+     "status": "active"
+    }
+   ],
+   "edges": [
+    [
+     "dec:bc51b5f9",
+     "fact:863f9071"
+    ],
+    [
+     "dec:bc51b5f9",
+     "fact:0f209924"
+    ],
+    [
+     "dec:bc51b5f9",
+     "fact:ee36e4f5"
+    ],
+    [
+     "proc:122c2087",
+     "fact:863f9071"
+    ],
+    [
+     "proc:122c2087",
+     "fact:0f209924"
+    ],
+    [
+     "proc:122c2087",
+     "fact:ee36e4f5"
+    ],
+    [
+     "fact:f99a68e4",
+     "dec:bc51b5f9"
+    ]
+   ],
+   "blast": {
+    "fact:863f9071": [
+     "dec:bc51b5f9",
+     "proc:122c2087",
+     "fact:f99a68e4"
+    ],
+    "fact:0f209924": [
+     "dec:bc51b5f9",
+     "proc:122c2087",
+     "fact:f99a68e4"
+    ],
+    "fact:ee36e4f5": [
+     "dec:bc51b5f9",
+     "proc:122c2087",
+     "fact:f99a68e4"
+    ],
+    "dec:bc51b5f9": [
+     "fact:f99a68e4"
+    ],
+    "fact:f99a68e4": []
+   },
+   "steps": [
+    {
+     "role": "researcher",
+     "reply": "Thanks, Marguerite. I've noted that your community garden has 24 plots, a waiting list of 61 people, and a water bill of \u00a3310 a year.\n\nWith 61 people waiting for 24 plots, the list is more than twice the size of the garden. If you'd like help with anything from here, such as a letter to members abou",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Marguerite's community garden has 24 plots.",
+        "entity": "user:marguerite",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Marguerite's community garden has a waiting list of 61 people.",
+        "entity": "user:marguerite",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Marguerite's community garden water bill is 310 pounds a year.",
+        "entity": "user:marguerite",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Marguerite's community garden has a waiting list of 61 people.",
+        "entity": "user:marguerite",
+        "source": "user",
+        "confidence": 0.9,
+        "distinct_from": [
+         "fact:863f9071"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Marguerite's community garden water bill is 310 pounds a year.",
+        "entity": "user:marguerite",
+        "source": "user",
+        "confidence": 0.9,
+        "distinct_from": [
+         "fact:863f9071"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Marguerite's community garden water bill is 310 pounds a year.",
+        "entity": "user:marguerite",
+        "source": "user",
+        "confidence": 0.9,
+        "distinct_from": [
+         "fact:863f9071",
+         "fact:0f209924"
+        ]
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "researcher",
+     "reply": "I've passed your garden details to the Planner, who will work out the yearly fee per plot and a waiting list process, then hand the plan to the Writer for the gate notice. You'll get the finished plan and notice in the next reply.",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:marguerite"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "topic:community-garden"
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:marguerite-planner",
+        "item_ids": [
+         "fact:863f9071",
+         "fact:0f209924",
+         "fact:ee36e4f5"
+        ],
+        "note": "Marguerite runs a community garden with 24 plots, a waiting list of 61 people, and a water bill of 310 pounds a year (all facts supplied by her). Please plan a yearly fee per plot that covers the water bill, and a fair way to handle the waiting list (for example, allocation rules, a sign-up or waitlist process, and how plots are offered as they free up). Then pass the plan to the Writer to draft the notice for the gate, which should explain the fee and the waiting list process in plain, friendly language."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "planner",
+     "reply": "Here's the plan for the garden:\n\n**Yearly fee:** \u00a313 per plot. Across 24 plots that brings in \u00a3312, enough to cover the \u00a3310 water bill. This covers water only, so if there are other costs like tools or upkeep, let me know and I'll adjust the fee.\n\n**Waiting list:**\n- Keep one list of the 61 people,",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall_procedures",
+       "args": {
+        "entity": "topic:trip-planning"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:marguerite"
+       },
+       "ok": true
+      },
+      {
+       "tool": "decide",
+       "args": {
+        "text": "Yearly fee per plot: \u00a313 (24 plots x \u00a313 = \u00a3312, which covers the \u00a3310 water bill with a \u00a32 margin). This covers water only; other costs (tools, upkeep) are not yet known and would need adding. Waiting list process: keep one ordered list of the 61 people, first-come-first-served by sign-up date; when a plot frees up (by resignation or end of season), offer it to the next person on the list by email/phone, giving 7 days to accept or decline; a declined offer moves the person to the back of the list; plots are reallocated at the start of each season; a waitlist sign-up form is kept open so newcomers join at the end.",
+        "derived_from": [
+         "fact:863f9071",
+         "fact:0f209924",
+         "fact:ee36e4f5"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "learn_procedure",
+       "args": {
+        "entity": "topic:garden-planning",
+        "name": "Set a yearly plot fee and waiting list process",
+        "steps": [
+         "Total the yearly running costs (water bill, upkeep, tools) from the bills.",
+         "Divide the total by the number of plots, rounding up to the nearest pound, to get the yearly fee per plot.",
+         "Check the fee times the plot count covers the total costs, with a small margin.",
+         "Keep the waiting list as one ordered list by sign-up date.",
+         "When a plot frees up, offer it to the next person on the list with a set deadline to accept.",
+         "If an offer is declined, move that person to the back of the list.",
+         "Reallocate plots at the start of each season and keep the sign-up form open for newcomers."
+        ],
+        "derived_from": [
+         "fact:863f9071",
+         "fact:0f209924",
+         "fact:ee36e4f5"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:marguerite-writer",
+        "item_ids": [
+         "dec:bc51b5f9"
+        ],
+        "note": "Please draft the gate notice for the community garden, in plain friendly language. Explain: the yearly fee is \u00a313 per plot (covers the \u00a3310 water bill across 24 plots); the waiting list (61 people) is first-come-first-served by sign-up date; when a plot frees up it is offered to the next person, who has 7 days to accept; if declined, they move to the back of the list; plots are reallocated at the start of each season, and new people can join the end of the list."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "writer",
+     "reply": "**Community Garden Notice**\n\nHello everyone,\n\n**Yearly plot fee:** Each plot costs \u00a313 a year. With 24 plots, this covers our \u00a3310 annual water bill.\n\n**Waiting list:** We currently have 61 people waiting for a plot. Plots are offered first come, first served, based on sign-up date.\n\n- When a plot f",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Community garden gate notice (draft): Hello everyone, our yearly plot fee is \u00a313 per plot. With 24 plots, this covers our \u00a3310 annual water bill. Waiting list: we have 61 people waiting for a plot. Plots are offered first come, first served by sign-up date. When a plot frees up, it is offered to the next person on the list, who has 7 days to accept. If you decline, you move to the back of the list. Plots are reallocated at the start of each season. New people can join the end of the waiting list at any time. Thank you for helping keep the garden running. Marguerite",
+        "entity": "doc:community-garden-gate-notice",
+        "entity_name": "Community garden gate notice",
+        "source": "agent",
+        "derived_from": [
+         "dec:bc51b5f9"
+        ],
+        "confidence": 0.8
+       },
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "grant",
+   "items": [
+    {
+     "id": "fact:c2af8b5e",
+     "kind": "Fact",
+     "text": "Lab grant totals 180,000 dollars over three years (60,000 per year).",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:cf489467",
+     "kind": "Fact",
+     "text": "Postdoc costs 72,000 dollars per year with benefits, funded from the lab grant.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "fact:7759a572",
+     "kind": "Fact",
+     "text": "Mass spectrometer service contract costs 9,500 dollars per year, funded from the lab grant.",
+     "source": "user",
+     "status": "active"
+    },
+    {
+     "id": "dec:e497d218",
+     "kind": "Decision",
+     "text": "Budget plan for the lab grant (assumes the full 180,000 is still unspent, since no spending record exists). Planned costs are 81,500 per year (postdoc 72,000 plus service contract 9,500) against 60,000 per year of funding, a gap of 21,500 per year and 64,500 over three years. Options, in order of preference: (1) confirm with the funder whether the service contract is an allowable charge and whether a reduced or pay-per-use contract is possible; (2) cover the 64,500 from other funds such as departmental or institutional support, or a cost share; (3) if neither is available, reduce the postdoc's cost to fit the grant, for example by a part-time appointment or a later start, which would need a postdoc cost of about 50,500 per year if the service contract stays at 9,500. The plan should be confirmed against actual spending to date before any commitment.",
+     "source": null,
+     "status": "active"
+    },
+    {
+     "id": "fact:33bbfdf1",
+     "kind": "Fact",
+     "text": "Draft update email to the programme officer about the lab grant budget. Subject: Lab grant budget update. Dear [Programme Officer name], I am writing to update you on the budget for our three-year lab grant. The grant totals 180,000 dollars (60,000 dollars per year). Planned costs are higher than this: the postdoctoral position costs 72,000 dollars per year including benefits, and the mass spectrometer service contract costs 9,500 dollars per year, for 81,500 dollars per year in total. This leaves a projected shortfall of 21,500 dollars per year, or 64,500 dollars over the three years. Spending to date is [actual spending to date]. We are considering three options: (1) confirming whether the service contract can be charged to the grant, or moving to a lower-cost or pay-per-use contract; (2) covering the shortfall from other funds, such as departmental support or cost share; (3) if neither is possible, reducing the postdoc cost to about 50,500 dollars per year, for example through a part-time post or a later start. I would welcome your guidance on which options the funder allows, and I will confirm the final plan once the actual figures are checked. Kind regards, Dr Lindqvist",
+     "source": "agent",
+     "status": "active"
+    }
+   ],
+   "edges": [
+    [
+     "dec:e497d218",
+     "fact:c2af8b5e"
+    ],
+    [
+     "dec:e497d218",
+     "fact:cf489467"
+    ],
+    [
+     "dec:e497d218",
+     "fact:7759a572"
+    ],
+    [
+     "fact:33bbfdf1",
+     "dec:e497d218"
+    ]
+   ],
+   "blast": {
+    "fact:c2af8b5e": [
+     "dec:e497d218",
+     "fact:33bbfdf1"
+    ],
+    "fact:cf489467": [
+     "dec:e497d218",
+     "fact:33bbfdf1"
+    ],
+    "fact:7759a572": [
+     "dec:e497d218",
+     "fact:33bbfdf1"
+    ],
+    "dec:e497d218": [
+     "fact:33bbfdf1"
+    ],
+    "fact:33bbfdf1": []
+   },
+   "steps": [
+    {
+     "role": "researcher",
+     "reply": "Those costs don't fit the grant as it stands. The grant works out to 60,000 a year, but the postdoc (72,000) and the service contract (9,500) come to 81,500 a year, which is 21,500 more each year.\n\nOver the three years, that's 244,500 in costs against 180,000 in funding, a shortfall of 64,500. You'd",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Lab grant totals 180,000 dollars over three years (60,000 per year).",
+        "entity": "user:dr-lindqvist",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Lab grant budget includes a postdoc costing 72,000 dollars per year including benefits.",
+        "entity": "user:dr-lindqvist",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Lab grant budget includes a mass spectrometer service contract costing 9,500 dollars per year.",
+        "entity": "user:dr-lindqvist",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Postdoc costs 72,000 dollars per year with benefits, funded from the lab grant.",
+        "entity": "user:dr-lindqvist",
+        "source": "user",
+        "confidence": 0.9,
+        "distinct_from": [
+         "fact:c2af8b5e"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Mass spectrometer service contract costs 9,500 dollars per year, funded from the lab grant.",
+        "entity": "user:dr-lindqvist",
+        "source": "user",
+        "confidence": 0.9,
+        "distinct_from": [
+         "fact:c2af8b5e"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Mass spectrometer service contract costs 9,500 dollars per year, funded from the lab grant.",
+        "entity": "user:dr-lindqvist",
+        "source": "user",
+        "confidence": 0.9,
+        "distinct_from": [
+         "fact:c2af8b5e",
+         "fact:cf489467"
+        ]
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "researcher",
+     "reply": "I've passed this to our planner to work out how to spend the remaining budget, and it will then draft the update email for your programme officer.\n\nI don't have a record of what has been spent so far, or the programme officer's name, so the plan will assume the full 180,000 is still available and th",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:dr-lindqvist"
+       },
+       "ok": true
+      },
+      {
+       "tool": "search_history",
+       "args": {
+        "query": "grant budget spent programme officer"
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:dr-lindqvist-planner",
+        "item_ids": [
+         "fact:c2af8b5e",
+         "fact:cf489467",
+         "fact:7759a572"
+        ],
+        "note": "Dr Lindqvist wants a plan for spending what is left of the lab grant, then a short update email to the programme officer (the Writer should draft it). Known facts: grant is 180,000 over three years (60,000/yr); postdoc is 72,000/yr with benefits; mass spectrometer service contract is 9,500/yr. Planned costs are 81,500/yr, so there is a 64,500 shortfall over three years (244,500 vs 180,000). No record of actual spending to date or of the programme officer's name, so state those assumptions in the plan and leave placeholders in the email. Please pass the plan to the Writer for the email."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "planner",
+     "reply": "The plan is written and has gone to the Writer for the update email. Here is the short version:\n\n- The grant covers 60,000 a year, but the postdoc (72,000) and the service contract (9,500) cost 81,500 a year. That leaves a gap of 21,500 a year, or 64,500 over three years.\n- **Option 1:** Check wheth",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall_procedures",
+       "args": {
+        "entity": "topic:budget-planning"
+       },
+       "ok": true
+      },
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:dr-lindqvist"
+       },
+       "ok": true
+      },
+      {
+       "tool": "decide",
+       "args": {
+        "text": "Budget plan for the lab grant (assumes the full 180,000 is still unspent, since no spending record exists). Planned costs are 81,500 per year (postdoc 72,000 plus service contract 9,500) against 60,000 per year of funding, a gap of 21,500 per year and 64,500 over three years. Options, in order of preference: (1) confirm with the funder whether the service contract is an allowable charge and whether a reduced or pay-per-use contract is possible; (2) cover the 64,500 from other funds such as departmental or institutional support, or a cost share; (3) if neither is available, reduce the postdoc's cost to fit the grant, for example by a part-time appointment or a later start, which would need a postdoc cost of about 50,500 per year if the service contract stays at 9,500. The plan should be confirmed against actual spending to date before any commitment.",
+        "derived_from": [
+         "fact:c2af8b5e",
+         "fact:cf489467",
+         "fact:7759a572"
+        ]
+       },
+       "ok": true
+      },
+      {
+       "tool": "handoff",
+       "args": {
+        "recipient": "agent:dr-lindqvist-writer",
+        "item_ids": [
+         "dec:e497d218"
+        ],
+        "note": "Please draft a short update email to Dr Lindqvist's programme officer based on this budget plan. Leave placeholders for the officer's name and for actual spending to date, since neither is on record. Key figures: grant 180,000 over three years (60,000/yr); planned costs 81,500/yr; shortfall 64,500 over three years."
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "writer",
+     "reply": "Here's a draft you can send once you've filled in the placeholders.\n\n**Subject: Lab grant budget update**\n\nDear [Programme Officer name],\n\nI am writing to update you on the budget for our three-year lab grant. The grant totals 180,000 dollars (60,000 dollars per year). Planned costs are higher than ",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Draft update email to the programme officer about the lab grant budget. Subject: Lab grant budget update. Dear [Programme Officer name], I am writing to update you on the budget for our three-year lab grant. The grant totals 180,000 dollars (60,000 dollars per year). Planned costs are higher than this: the postdoctoral position costs 72,000 dollars per year including benefits, and the mass spectrometer service contract costs 9,500 dollars per year, for 81,500 dollars per year in total. This leaves a projected shortfall of 21,500 dollars per year, or 64,500 dollars over the three years. Spending to date is [actual spending to date]. We are considering three options: (1) confirming whether the service contract can be charged to the grant, or moving to a lower-cost or pay-per-use contract; (2) covering the shortfall from other funds, such as departmental support or cost share; (3) if neither is possible, reducing the postdoc cost to about 50,500 dollars per year, for example through a part-time post or a later start. I would welcome your guidance on which options the funder allows, and I will confirm the final plan once the actual figures are checked. Kind regards, Dr Lindqvist",
+        "entity": "doc:lab-grant-budget-update",
+        "entity_name": "Lab grant budget update email",
+        "source": "agent",
+        "confidence": 0.7,
+        "derived_from": [
+         "dec:e497d218"
+        ]
+       },
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "tour",
+   "items": [
+    {
+     "id": "fact:9ebe061e",
+     "kind": "Fact",
+     "text": "Kasper's band has a 9-city tour in November. The tour van costs about 0.31 euros per kilometre in fuel. The longest drive on the tour is 640 km, from Brno to Hamburg.",
+     "source": "user",
+     "status": "active"
+    }
+   ],
+   "edges": [],
+   "blast": {
+    "fact:9ebe061e": []
+   },
+   "steps": [
+    {
+     "role": "researcher",
+     "reply": "The longest leg, Brno to Hamburg, would cost about **198.40 euros** in fuel (640 km \u00d7 0.31 \u20ac/km).\n\nIf you tell me the distances between the other eight cities, I can work out the fuel cost for the whole tour.",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "remember",
+       "args": {
+        "text": "Kasper's band has a 9-city tour in November. The tour van costs about 0.31 euros per kilometre in fuel. The longest drive on the tour is 640 km, from Brno to Hamburg.",
+        "entity": "user:kasper",
+        "source": "user",
+        "confidence": 0.9
+       },
+       "ok": true
+      }
+     ]
+    },
+    {
+     "role": "researcher",
+     "reply": "I can't build the full driving plan yet because I only have one leg of the tour. I have the Brno to Hamburg drive (640 km, about 198.40 \u20ac in fuel), but not the other eight cities.\n\nTo finish the plan and the fuel budget, I need:\n\n1. **The tour route**: the 9 cities in order, with dates if you have t",
+     "stop": "end_turn",
+     "calls": [
+      {
+       "tool": "recall",
+       "args": {
+        "entity": "user:kasper"
+       },
+       "ok": true
+      },
+      {
+       "tool": "search_history",
+       "args": {
+        "query": "tour cities distance booking agent"
+       },
+       "ok": true
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

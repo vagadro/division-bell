@@ -219,7 +219,9 @@ Any store that records parent links could answer this question. What FalkorDB ad
 | Extra wrong links added | 10% | 0.88 | 1.00 | 0.94 |
 | Extra wrong links added | 25% | 0.79 | 1.00 | 0.88 |
 
-At a 25% forgetting rate the graph falls below the LLM reader. Lineage wins when agents record what they built on, which is why every write tool takes `derived_from`. How reliably real agents do this has not been measured.
+At a 25% forgetting rate the graph falls below the LLM reader. Lineage wins when agents record what they built on, which is why every write tool takes `derived_from`.
+
+**Do real agents record the links?** [`agent_links.py`](backend/eval/agent_links.py) runs 10 short, hand-written requests through the real Researcher, Planner and Writer (Claude Haiku 5.5): the user states three facts, then asks for a plan and a draft. In 9 of 10 the agents wrote a plan and a draft (in the tenth the Researcher asked for missing information first). Of the 42 dependencies visible in the text of those plans and drafts, all 42 had a recorded path back to the fact, and none of the 18 items was saved without a source. These were short, single-chat tasks with one model and one run, and the check only sees dependencies whose value is repeated in the text, so longer, multi-session work remains untested. Details in [`agent_links.md`](backend/eval/results/agent_links.md).
 
 The graph flags every item downstream of a wrong fact, however far away, so read its flags as "review these", a safe superset, not "these are certainly wrong". With 16 scenarios the sample is small.
 
@@ -294,7 +296,7 @@ What this project adds is a concrete implementation on FalkorDB, where retract a
 - Lineage follows only the links agents record. A dependency nobody wrote down is never flagged.
 - Blast radius is the full downstream set, which is a safe superset of what is actually wrong.
 - Only Claude models are supported. An adapter for other providers, and a remote MCP server (which needs OAuth), are future work.
-- Measuring how reliably real agents record their sources, on real tasks, is the next evaluation.
+- Real agents recorded every link on short tasks (see [Evaluation](#evaluation)). Measuring this on long, multi-session work is the next evaluation.
 
 ## About the name
 
